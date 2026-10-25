@@ -1,686 +1,927 @@
 # Software Engineering — Project Plan
-# GymTracker
 
 ## Cover Page
 
 | Field | Details |
 |---|---|
-| Course | Software Engineering - BLG 411E |
-| Report name | Project Plan |
-| Project title | GymTracker: AI-assisted Fitness Planning and Tracking |
-| Group name | CSHA |
-| Group members | Ahmet Abalı, Can Sei Keçeci, Hamza Çevikbaş, Selim Efe Aytemur |
-| Student IDs | 150240052, 150240007, 150240025, 150230070 |
-| Instructor | Prof. Dr. Tolga Ovatman - Assoc. Prof. Dr. Ayşe Tosun |
-| Customer | Res. Ass. Kemal Devrim Kafadar - kafadar19@itu.edu.tr |
-| Product Owner | Selim Efe Aytemur - aytemur23@itu.edu.tr |
-| Submission date | 26 October 2026 |
-| Document version | 0.0 |
-| Repository | https://github.com/kececi24/gymtracker |
+| **Course** | BLG 411E — Software Engineering |
+| **Report name** | Project Plan |
+| **Project title** | GymTracker: AI-assisted Fitness Planning and Tracking |
+| **Group name / number** | CSHA |
+| **Group members** | Ahmet Abalı — 150240052, Can Sei Keçeci — 150240007, Hamza Çevikbaş — 150240025, Selim Efe Aytemur — 150230070 |
+| **Instructor** | Prof. Dr. Tolga Ovatman, Assoc. Prof. Dr. Ayşe Tosun |
+| **Repository** | https://github.com/kececi24/gymtracker |
+| **Submission date** | 2026-10-26 |
+| **Document version** | 1.0 |
+
+---
+
 ## 1. Introduction
 
 ### 1.1 Scope
 
-GymTracker is an Mobile/Android-first fitness planning and tracking application. It brings goal setting, workout planning, workout recording, progress review, and training-partner coordination into one workflow. Its intended users include beginners, fitness enthusiasts, athletes, and trainers. The broader intended audience spans ages 16 to 70 and above; this application pilot does not claim that its recommendations are clinically validated or suitable for every individual.
+**Project overview:**  
+Individuals who train regularly often distribute their planning, logging and progress review across several tools, which makes it difficult to relate what was planned to what was performed. GymTracker is an Android-first application that integrates these activities into a single workflow: the user authenticates, defines goals, selects or creates a program, schedules sessions, records completed workouts, reviews measured progress and revises future plans. Workouts may be entered manually or described in natural language and converted into a structured draft by a large language model. All AI output is treated as a proposal; persisted training data change only after the user has reviewed and confirmed the proposal. The intended users are beginners, recreational athletes and trainers aged 16 and above. The application does not provide medical or clinical advice.
 
-The central workflow is: authenticate, establish a profile and goals, select or create a program, schedule sessions, record completed exercise, review measured progress, and revise future plans. Users can record sessions manually or submit a natural-language description for conversion into a structured draft. AI-generated goals, plans, logs, and insights remain proposals. A user must inspect and explicitly confirm any proposal that changes persisted training data. Historical records and progress calculations come from stored, user-approved records rather than generated narrative.
+The project goal is a working Android pilot accompanied by a documented architecture, traceable requirements, a reproducible deployment and recorded test evidence. Success is measured against the acceptance criteria in Section 1.2, not against changes in users' physical performance.
 
-The objective is a working application with repeatable end-to-end demonstrations, a documented architecture, traceable requirements, a reproducible deployment, and test evidence. Success measurements are meeting the release acceptance conditions in Sections 1.2 and 5.5; not proving improved physical performance in a clinical study.
+**In scope:**
+- Welcome screens, email and Google authentication, onboarding, an editable profile, manual goals and AI goal suggestions.
+- An exercise catalogue organized by muscle group (at least 20 reviewed exercises), at least three predefined programs, and manual and AI-assisted program creation.
+- Weekly and monthly calendar views, scheduling, rescheduling, cancellation, reminders and notification preferences.
+- Live and post-workout manual logging, natural-language post-workout logging, local drafts and queued synchronization. When a record edited offline is synchronized, it overwrites the server version (last-write-wins); no conflict-resolution interface is provided.
+- Workout history, a progress dashboard, personal records and personalized insights.
+- Friend requests and connections, and explicit sharing and revocation of completed-workout summaries.
+- ASP.NET Core APIs, PostgreSQL persistence, an Android build, a Docker Compose deployment, CI with security scanning, test evidence and documentation.
 
-**Mandatory Android pilot scope**
+**Optional scope:**
 
-- Welcome screens, email and Google authentication, onboarding, editable profile, manual goals, and AI goal suggestions.
-- An exercise catalogue organized by muscle group, predefined workout schemas, and manual and AI-assisted workout creation.
-- Weekly and monthly calendar views, scheduling, rescheduling, cancellations, reminders, and notification preferences.
-- Manual live workout logging, manual post-workout logging, natural-language post-workout logging, local draft storage, and queued synchronization.
-- History, a progress dashboard, personal records, personalized insights, daily motivational quotes, and badges.
-- Friend requests and connections, joint-workout invitations, explicit workout sharing, friend-group text chat, and moderation controls.
-- Backend APIs, PostgreSQL persistence, Android packaging, Docker Compose deployment, a bounded Kubernetes/Helm deployment test, CI, security checks, test evidence, and documentation.
+Optional items are excluded from the mandatory acceptance baseline and the critical path. They are selected only after the Product Owner confirms that mandatory work is on schedule and that the assigned member has spare capacity. The table lists them in the order in which they would be deferred if capacity becomes insufficient.
 
-**Release boundaries and feature depth**
+| Optional capability | Task | Acceptance if selected | Deferral order |
+|---|---|---|---|
+| Kubernetes/Helm deployment | T-17 | Install, migration job, health check and rollback succeed on a local cluster. | 1 (deferred first) |
+| Global workout-plan sharing | T-16 | Publish/unpublish structured plans, browse public plans and import an independent copy; no private history or profile data is exposed. | 2 |
+| Group chat | T-14 | Persisted text messages; only current members can read or post. | 3 |
+| Joint workouts | T-15 | Invite, accept, decline and cancel a shared session; each participant keeps an independent log. | 4 |
+| Badges and daily quotes | T-13 | At least three deterministic badge rules and curated quotes; awards recalculate after record edits. | 5 (deferred last) |
 
-The pilot implements the complete feature set at demonstrable scale. The initial catalogue contains at least 20 reviewed resistance exercises covering the major muscle groups and at least three predefined programs. Chat supports persisted text messages and membership control; attachments, typing indicators, message search, and read receipts are outside this release. Joint workouts coordinate a common scheduled event while each participant keeps an independent private workout log. Badges use at least three deterministic rules, and motivational quotes come from a small curated collection. Moderation includes reporting, blocking, authorized report review, content hiding, and account restriction. These boundaries limit implementation depth without removing required features.
+Because the pilot has no moderation function, global plan sharing is restricted to structured plan data (exercises, sets and a short title) and excludes free-text fields. Web and iOS clients are later stages that require a separate plan.
 
-**Subsequent stages**
+**Out of scope:**
 
-Stage 2 is a web client using the same backend; Stage 3 is an iOS client. Neither is planned for the December acceptance baseline, assigned implementation effort, or critical path. Reusable Flutter components and documented API contracts support those later stages. Dates and budgets for these stages require a separate plan after the Android pilot is accepted.
+Content moderation, reporting, moderator roles and account restriction; conflict-resolution interfaces for concurrent edits; usability studies with external participants; medical diagnosis, injury assessment or rehabilitation; nutrition tracking; payments and e-commerce; camera-based form analysis and automatic repetition counting; wearable and health-platform integrations; GPS and cardio tracking; custom model training; and production-scale availability commitments.
 
-**Out of scope**
+**Assumptions and constraints:**
 
-Medical diagnosis; injury assessment; rehabilitation; emergency monitoring; clinical claims; gym billing and membership administration; trainer payments; e-commerce; camera-based form analysis; automatic repetition counting; voice transcription; biometric identification; supplement, drug, or diet prescriptions; meal databases, barcode scanning, or macronutrient diaries; AI meal recognition; wearable, Bluetooth, Apple Health, Health Connect, and live heart-rate integration; autonomous AI writes; AI access to friends' private records; GPS or cardio-distance tracking; competition administration; advanced periodization automation; simultaneous editing of a shared workout log; custom model training; proprietary model-training datasets; and production-scale availability commitments.
-
-**Planning assumptions and constraints**
-
-As of 23 October 2026, the charter is the only completed project artifact reported by the team. No implementation or test results are assumed to exist. The implementation baseline starts on 26 October 2026. The charter deadline is 12 October and the plan deadline is 26 October; all subsequent academic deadlines remain unchanged.
-
-Each of four members is expected to contribute 8–10 hours per week. The baseline uses eight hours, with seven allocated to planned work and one protected for contingency each week. The additional two hours are potential recovery capacity, not guaranteed capacity. Exams are distributed across the semester; individual unavailability is recorded weekly and tasks are reassigned before commitments are missed. There is no full-time team member.
-
-The baseline includes 252 planned person-hours, 36 contingency hours, and up to 72 additional hours only if members actually confirm ten-hour availability. All human review, meetings, documentation, and validation must fit inside the assigned effort. Estimates are an initial planning model to be calibrated against measured throughput, not a guarantee that the full backlog can be implemented without adjustment.
-
-The pilot assumes access to development laptops, an Android emulator and at least one physical Android device, GitHub, Firebase project credentials, and an authorized frontier-model API account. Hosting and monetary spending limits have not yet been allocated. The default deployment is a team-controlled Docker Compose environment; external hosting is not a release prerequisite. Paid resources require a recorded team spending limit before activation. No budget of zero and no unrestricted API credit are assumed.
+- **Time.** The implementation baseline runs from 26 October to 28 December 2026. Report deadlines are fixed by the course and are listed in Section 5.4.
+- **Team capacity.** Each of the four members contributes eight hours per week for nine weeks (72 hours per member, 288 hours in total). Seven hours per week are schedulable and one hour is reserved for contingency. Members may offer up to two additional hours per week, but this is not assumed in the baseline. Examination periods are recorded weekly and work is reassigned before commitments are missed.
+- **Resources.** The team has development laptops, an Android emulator, at least one physical Android device, GitHub, a Firebase project and access to at least one commercial LLM API. Paid services require an agreed spending limit before activation.
+- **AI assistance.** AI development assistants are used for scaffolding, routine code and first drafts of documents. Their assumed effect on effort is quantified in Section 3.3.
+- **Status.** At the time of writing, the project charter is the only completed artifact; no implementation exists.
 
 ### 1.2 Deliverables
 
-Deliverables are product capabilities and supporting assets. Academic reports are submission milestones within D-10 rather than substitutes for functioning software. 
+The deliverables below are product capabilities and supporting assets. Course reports are milestones within D-10.
 
-| ID | Deliverable | Contents | Acceptance criterion |
+| Deliverable ID | Deliverable name | Description / contents | Acceptance criterion |
 |---|---|---|---|
-| D-01 | Android application and identity | Welcome, email/Google login, onboarding, profile, goals, navigation and preferences. | A new email user and a Google user can reach the dashboard; an unauthenticated request and another user’s private-record request are rejected; profile and goals persist after restart. |
-| D-02 | Exercise and program management | Reviewed catalogue, templates, manual and AI-assisted program creation. | At least 20 exercises and three programs exist; a user can create, edit and reuse a program; an AI draft cannot be saved without confirmation. |
-| D-03 | Calendar and notifications | Weekly/monthly views, planned sessions, invitation scheduling, reminder preferences and FCM integration. | Create, move and cancel a session; verify local-time display; a controlled-device reminder test succeeds and cancellation prevents a stale queued reminder from being dispatched. |
-| D-04 | Workout records and synchronization | Live/manual post-workout entry, local drafts, durable queue, history and conflict handling. | A locally saved draft survives app restart; repeated upload of the same operation creates one logical record; an edit conflict preserves both versions until resolved. |
-| D-05 | AI assistance service | Goal suggestions, program drafts, natural-language log conversion and personalized explanations. | All four workflows produce editable drafts or clear failures; malformed, ambiguous and unavailable-provider cases preserve manual workflows; AI has no direct persistence authority. |
-| D-06 | Progress and motivation | Dashboard, deterministic personal records and badges, curated quotes and bounded insights. | Fixture-based calculations reproduce expected volume, session count and records; correcting/deleting a workout updates derived results; three badge rules and daily quote selection are demonstrable. |
-| D-07 | Social coordination and moderation | Connections, joint invitations, sharing, group text chat, reporting, blocking and moderator actions. | Two users complete friend/invite/share/chat scenarios; a third user cannot read their restricted content; report review and moderator restrictions are auditable. |
-| D-08 | Backend and data platform | ASP.NET Core APIs, PostgreSQL schema, migrations, background jobs, Firebase identity verification and OpenAPI. | A clean database migrates successfully; API contracts match implemented endpoints; ownership and membership tests pass against PostgreSQL; backup restoration is demonstrated. |
-| D-09 | Delivery and verification system | CI, tests, vulnerability scans, Docker Compose, Kubernetes/Helm smoke test and Android build. | A clean checkout builds and tests using documented steps; Compose runs the pilot; Kubernetes/Helm installation and rollback smoke-test evidence exists; release has no unresolved release-blocking defect. |
-| D-10 | Documentation and handover | Planning, requirements, analysis, design, test evidence, user/admin guides, AI-use record, demo and presentation materials. | All required sections and traceability links are present; another member follows setup and demo instructions; required reports and final artifacts are packaged by their milestones. |
+| D-01 | Android application and identity | Welcome, email/Google login, onboarding, profile, goals, navigation and preferences. | A new email user and a Google user reach the dashboard; unauthenticated and non-owner requests are rejected; profile and goals persist after restart. |
+| D-02 | Exercise and program management | Reviewed catalogue, templates, and manual and AI-assisted program creation. | At least 20 exercises and three programs exist; a user can create, edit and reuse a program; an AI draft cannot be saved without confirmation. |
+| D-03 | Calendar and notifications | Weekly/monthly views, planned sessions, reminder preferences and FCM integration. | Sessions can be created, moved and cancelled and display in local time; a reminder arrives on a test device; a cancelled session sends no reminder. |
+| D-04 | Workout records and synchronization | Live and post-workout entry, local drafts, a durable queue and history. | A locally saved draft survives restart; replaying the same operation creates one record; an offline edit replaces the server version after reconnection. |
+| D-05 | AI assistance service | Goal suggestions, program drafts, natural-language log conversion and personalized insights. | All four workflows produce editable drafts or clear failure messages; malformed output and provider outages leave manual workflows usable; AI output is never persisted without confirmation. |
+| D-06 | Progress and motivation | Dashboard, deterministic personal records and insights; optional badges and quotes. | Fixture-based calculations reproduce expected volume, session counts and records; editing or deleting a workout updates derived results. |
+| D-07 | Social coordination | Friend connections and private workout-summary sharing; optional chat, joint workouts and global plan sharing. | Two users complete the friend and sharing scenarios; a third user cannot read their shared content; revocation removes access. |
+| D-08 | Backend and data platform | ASP.NET Core APIs, PostgreSQL schema and migrations, background jobs, Firebase token verification and OpenAPI contracts. | A clean database migrates successfully; API contracts match implemented endpoints; ownership tests pass against PostgreSQL; a backup is restored successfully. |
+| D-09 | Delivery and verification system | CI, automated tests, vulnerability scans, Docker Compose deployment and Android build; optional Kubernetes/Helm. | A clean checkout builds and passes tests by following the documented steps; Compose runs the pilot; no unresolved release-blocking defect remains. |
+| D-10 | Documentation | Requirement, analysis, design and test reports; user/administrator guide; AI-use record; demonstration and presentation material. | All required sections and traceability links are present; another member reproduces the setup; each report is submitted by its deadline. |
 
 ### 1.3 Functional Requirements / Tasks
 
-| Task ID | Task | Expected behavior / work | Deliverables |
+Every task maps to at least one deliverable. Tasks T-13 to T-17 are optional.
+
+| Task ID | Functional requirement / task | Description | Related deliverable ID(s) |
 |---|---|---|---|
-| T-01 | Access and onboarding | Implement welcome, email and Google authentication, onboarding, profile editing, logout and owner-scoped account access. | D-01, D-08 |
-| T-02 | Goals and preferences | Create/edit goals, capture experience and available equipment, provide AI suggestions and store notification/privacy preferences. | D-01, D-05 |
-| T-03 | Exercise catalogue and templates | Browse/filter exercises by muscle group; inspect exercise definitions and select predefined programs. | D-02, D-08 |
-| T-04 | Program creation | Create/edit manual programs and inspect, edit, approve or discard AI program drafts. Preserve the program version used by a workout. | D-02, D-05 |
-| T-05 | Calendar and reminders | Create, reschedule, cancel and display sessions in weekly/monthly views; manage timezone-aware reminders and delivery attempts. | D-03 |
-| T-06 | Manual workout logging | Start and save live sessions; record sets, repetitions and load; enter past sessions; edit/delete owned records with confirmation. | D-04 |
-| T-07 | AI workout entry | Convert a text description into catalogue-mapped structured sets; flag unknown exercises, missing units and ambiguity; commit only confirmed content. | D-04, D-05 |
-| T-08 | Offline persistence and synchronization | Persist manual drafts and queued writes locally; retry safely after reconnection; surface and resolve conflicting edits. | D-04, D-08 |
-| T-09 | History and measured progress | Browse/filter history; show reproducible volume, completed-session frequency, exercise-specific records and muscle-group workload. | D-04, D-06 |
-| T-10 | Motivation and insights | Show curated daily quotes, deterministic badges and personalized explanations grounded in the user’s approved records. | D-05, D-06 |
-| T-11 | Friend connections | Send/accept/reject requests, remove friends and enforce connection/privacy rules on social APIs. | D-07 |
-| T-12 | Joint workouts and sharing | Invite friends, accept/decline/cancel joint events, maintain independent logs, and explicitly share or revoke a workout summary. | D-03, D-07 |
-| T-13 | Group chat | Create a friend group, manage membership and send/read persisted text messages with server-side authorization. | D-07 |
-| T-14 | Moderation | Report social content, block users, review reports with moderator privileges, hide content and restrict accounts with audit evidence. | D-07, D-08 |
-| T-15 | AI orchestration | Provide server-side provider adapters, response validation, bounded context, timeouts, usage controls and human-confirmation gates. | D-05, D-08 |
-| T-16 | Platform and deployment | Build schema/migrations, APIs, jobs, CI, secrets configuration, Compose deployment, Helm/Kubernetes test and release artifacts. | D-08, D-09 |
-| T-17 | Verification and acceptance | Execute automated and manual tests, inspect authorization/offline/AI failure paths, measure quality targets and resolve release blockers. | D-01–D-09 |
-| T-18 | Project control and documentation | Maintain scope, traceability, risks, estimates, progress and reports; prepare the demonstration, presentation and handover. | D-10 |
+| T-01 | Access and onboarding | Welcome screens, email and Google authentication, onboarding, profile editing, logout and owner-scoped account access. | D-01, D-08 |
+| T-02 | Goals and preferences | Manual goals, experience level, available equipment and notification/privacy preferences. | D-01 |
+| T-03 | Exercise catalogue and program management | Catalogue browsing by muscle group, predefined templates and manual program creation with version snapshots. | D-02, D-08 |
+| T-04 | Calendar and reminders | Weekly and monthly views; creating, moving and cancelling sessions; timezone-aware FCM reminders. | D-03 |
+| T-05 | Workout logging | Live and post-workout recording of sets, repetitions and load; editing and deleting owned records. | D-04 |
+| T-06 | Offline drafts and synchronization | Local drafts and a queue of pending writes; idempotent replay after reconnection with last-write-wins semantics. | D-04, D-08 |
+| T-07 | History and progress | History browsing and deterministic metrics: volume, session frequency, personal records and muscle-group workload. | D-06 |
+| T-08 | AI assistance | Provider adapter, natural-language workout logging, goal and program suggestions and grounded insights; every proposal requires user confirmation. | D-05 |
+| T-09 | Friend connections and private sharing | Friend requests, removal, and explicit sharing and revocation of completed-workout summaries. | D-07 |
+| T-10 | Platform and deployment | Repository, CI, Docker Compose environment, backup/restore and release packaging. | D-08, D-09 |
+| T-11 | Verification and acceptance | Security scanning, integration, regression, accessibility, performance and acceptance testing. | D-01 – D-09 |
+| T-12 | Project control and documentation | Course reports, user/administrator documentation, AI-use record, demonstration and presentation. | D-10 |
+| T-13 | Badges and daily quotes (optional) | Deterministic badge rules and curated motivational quotes. | D-06 |
+| T-14 | Group chat (optional) | Friend groups with persisted text messages and membership enforcement. | D-07 |
+| T-15 | Joint workouts (optional) | Shared session invitations with independent participant logs. | D-03, D-07 |
+| T-16 | Global workout-plan sharing (optional) | Publishing structured plans for other users to browse and import. | D-02, D-07 |
+| T-17 | Kubernetes/Helm deployment (optional) | Helm chart and smoke test on a local Kubernetes cluster. | D-09 |
 
 ### 1.4 Non-functional Issues
 
-The following are acceptance targets, not claims about performance already achieved. The test report records actual results and deviations. The reference test environment is a documented development host running Compose, a physical Android test device, a controlled network, 100 seeded users, and 10,000 seeded workout-set rows. Device/host specifications and software versions are recorded before measurement.
+The values below are acceptance targets; actual measurements are reported in the Software Test Report. Measurements use a documented development host running Docker Compose, one physical Android device, 100 seeded users and 10,000 seeded workout sets.
 
-| Quality attribute | Requirement | Assessment |
+| Quality attribute | Requirement / concern | How it will be assessed |
 |---|---|---|
-| Authorization | Every private endpoint derives identity from a verified Firebase token and checks resource ownership; chat, shared records and moderation additionally check membership/role. App Check supplements, never replaces, authorization. | Positive and negative API tests for unauthenticated, expired-token, non-owner, former-member and non-moderator access. |
-| Confidentiality | Provider keys remain server-side; private logs are excluded from ordinary telemetry; networked deployments use TLS. Local caches are user-scoped and cleared on logout after warning about unsynchronized changes. | Repository/CI secret scan; inspect sanitized logs; test account switching, logout and queued-data handling. |
-| AI integrity | Generated content is untrusted, schema-validated and user-reviewable. Provider output cannot call persistence operations directly. No private friend data is included in prompts. | Malformed JSON, prompt injection, foreign IDs, negative loads, invented exercises, missing units and rejected-draft cases. |
-| Performance | For ordinary non-AI API requests, target p95 ≤1 second under 10 concurrent simulated users over five minutes after warm-up. Cached primary screens target ≤2 seconds on the reference device. | Record sample counts, endpoint mix, network conditions, errors and latency distribution; exclude AI and external sign-in latency explicitly. |
-| AI responsiveness | Display progress immediately, allow cancellation, and terminate a provider attempt after 30 seconds. On failure expose manual entry and retain draft text. | Delayed/failed-provider tests and UI checks; timeout does not imply that provider-side execution or billing stopped. |
-| Reliability | No loss of a draft acknowledged as locally saved; idempotent synchronization; explicit conflict handling; cancelled reminders are not newly dispatched. | Kill/restart app, disconnect/reconnect, duplicate requests, stale versions and cancellation/job-race tests. |
-| Usability and accessibility | Readable contrast, text scaling to 200%, labelled controls and touch targets of at least 48 logical pixels on primary Android flows; visible save/sync/error states. | Widget/manual review plus five consenting adult evaluators: at least four complete a manual workout entry without facilitator intervention. |
-| Calculation correctness | Metrics use documented units and eligible stored sets; corrections propagate; body-map output describes workload, not measured muscle growth or medical fitness. | Hand-computed fixtures including empty history, deleted sets, zero external load and mixed exercise categories. |
-| Maintainability | Version-controlled migrations, lint/format checks, peer-reviewed changes, OpenAPI contracts and separate provider adapters. | CI evidence and review checklist; no merge with a failing mandatory check. |
-| Portability | Reproducible Android/Compose pilot and a separate Kubernetes/Helm smoke test; web/iOS release support is not claimed. | Clean-checkout build, installation, migration, health check and rollback checks. |
-| Recoverability | Back up PostgreSQL before release migration; restore a backup into an isolated database and verify record counts and sample records. | Restore rehearsal; target recovery within 60 minutes for the pilot dataset; report actual time. |
-| Cost control | Limit AI requests and input/output sizes using configurable settings; log usage totals without raw private prompts; disable AI when the approved budget threshold is reached. | Simulated quota-exhaustion and provider-error cases; manual functions remain usable. |
+| Security — authorization | Every private endpoint derives the user's identity from a verified Firebase token and checks ownership; shared summaries additionally check friendship and share status. | Positive and negative API tests for unauthenticated, expired-token, non-owner and non-friend requests. |
+| Security — confidentiality | Provider keys stay on the server; private workout data are excluded from logs; networked deployments use TLS; local caches are user-scoped and cleared on logout. | CI secret scanning, inspection of sanitized logs, and account-switch and logout tests. |
+| Security — AI integrity | Generated content is schema-validated and cannot invoke persistence directly; prompts contain only the current user's data. | Tests with malformed JSON, prompt injection, foreign IDs, negative loads, invented exercises and missing units. |
+| Performance | Non-AI API requests: 95th-percentile latency ≤ 1 s with 10 concurrent simulated users over five minutes. Cached primary screens load in ≤ 2 s on the test device. | Load test with recorded sample counts, endpoint mix and latency distribution; AI and sign-in latency excluded. |
+| AI responsiveness | Progress is shown immediately; requests can be cancelled and time out after 30 s; on failure the draft text is kept and manual entry is offered. | Delayed- and failed-provider tests using stubs. |
+| Reliability | A draft acknowledged as saved is never lost; synchronization is idempotent; the most recently synchronized write wins; cancelled reminders are not dispatched. | App-kill/restart, disconnect/reconnect, duplicate-request and reminder-cancellation tests. |
+| Usability and accessibility | Primary flows support 200% text scaling, adequate contrast, labelled controls and touch targets of at least 48 dp, and show visible save, sync and error states. | Checklist review by a member who did not build the screens, plus Flutter widget tests. |
+| Calculation correctness | Metrics use documented units and eligible stored sets; corrections propagate to derived values. | Comparison with hand-computed fixtures (empty history, deleted sets, zero load, mixed categories). |
+| Maintainability | Version-controlled migrations, lint and format checks, peer-reviewed pull requests, OpenAPI contracts and isolated provider adapters. | CI results; no merge with a failing mandatory check. |
+| Recoverability | PostgreSQL backups can be restored within 60 minutes for the pilot dataset. | Restore rehearsal with row-count and sample-record comparison; actual time is reported. |
+| Cost control | AI request counts and input/output sizes are capped by configuration; AI features are disabled when the approved budget is reached. | Simulated quota-exhaustion test; manual functions remain available. |
 
-### 1.5 Technical Baseline and Data Rules
+### 1.5 Technical Baseline
 
-The backend uses C#, .NET 10, ASP.NET Core, Entity Framework Core, REST APIs and OpenAPI. PostgreSQL is the canonical relational database and SQL dialect, including integration tests. The EF Core PostgreSQL provider is Npgsql; MySQL and Pomelo are not dependencies of this baseline. Exact framework/provider versions are pinned only after a compatibility smoke test demonstrates migration, insert, query and transaction rollback. Selecting PostgreSQL is a database-platform decision as well as a SQL-dialect decision.
+The backend uses C#, .NET 10, ASP.NET Core and Entity Framework Core with the Npgsql provider, exposing REST endpoints documented with OpenAPI. PostgreSQL is the only database and is also used in integration tests. Exact package versions are pinned after the compatibility check in WBS-10.1. The mobile client uses Flutter/Dart with Riverpod, Dio and Drift (SQLite). Firebase Authentication and Google Sign-In provide identity; the Firebase Admin SDK verifies tokens on the server and sends FCM notifications; Firebase App Check supplements but does not replace server-side authorization. Docker Compose provides the reproducible pilot environment, and GitHub Actions runs backend and Flutter tests, format checks, builds and Trivy scans.
 
-The mobile client uses Flutter/Dart, Riverpod, Dio and Drift/SQLite. Firebase Authentication and Google Sign-In provide identity; Firebase Admin SDK verifies identity and manages FCM delivery. Firebase App Check is evaluated and configured for the Android pilot with an explicitly separated development configuration. The PostgreSQL database is the canonical store of synchronized records; SQLite holds local drafts and pending operations. Background jobs manage reminder dispatch and retries. Chat initially uses REST polling while the chat screen is active, with configurable intervals and pagination; no new real-time transport is necessary for acceptance.
+**Data rules.** Timestamps are stored in UTC together with the user's display timezone. External load is normalized to kilograms. Volume is defined as the sum of repetitions × external load over eligible resistance sets; bodyweight exercises are tracked by repetitions only. Personal records are exercise-specific and distinguish maximum load from maximum repetitions. Editing a program creates a new version and does not alter historical workouts. Each queued write carries a client-generated operation ID, so a replayed operation creates at most one record. When an edited record is synchronized, it replaces the server version without a conflict prompt; this behaviour is documented in the user guide.
 
-Docker and Docker Compose provide the reproducible pilot environment. GitHub Actions runs backend xUnit tests, PostgreSQL integration tests, Flutter unit/widget tests, formatting, build checks and Trivy scans. Kubernetes and Helm are a deployment-testing workstream after the Compose pilot works. A local test cluster is sufficient; a managed production cluster is not required. Test credentials and provider stubs are kept separate from release configuration.
+**AI provider.** WBS-8.1 selects one primary provider from those to which the team has API access (for example Anthropic, OpenAI or Google) and records the exact model identifier, structured-output support, latency, cost and data-handling settings. A second provider is added only if it fits the same budget. All provider calls pass through an adapter, so the provider can be changed without modifying domain logic.
 
-**AI selection and use.** The planned candidate portfolio follows the project’s frontier-model strategy: OpenAI ChatGPT 5.5 Sol/Luna/Tera and 6.0 Astra families, Anthropic Claude Opus/Sonnet 5.5 and Haiku, xAI Grok 4.6/4.7, and Google Gemini 2.5/3/3.1/3.8 Flash/4 families, with supported effort settings. These are candidate labels, not assertions that every named model has an accessible API or identical capabilities. The first technical gate records the actual provider model identifier, access entitlement, structured-output support, latency, cost and data-handling configuration. One verified primary provider and, if accessible within the same budget, one fallback provider are sufficient for the pilot; implementing every candidate is not required. A configured adapter isolates provider changes from domain logic. Cursor and frontier assistants may support development; BigQuery is not required for transactional storage or pilot acceptance.
+**AI in development.** Development assistants may draft boilerplate, tests and document text. Team members remain responsible for architecture decisions, code review, security checks and acceptance. Credentials and personal data are never included in prompts. An AI-use log records the tool, purpose, affected artifact and human validation.
 
-Development assistants may draft boilerplate, tests, documentation and debugging proposals. Humans own architecture decisions, reviews, security checks and acceptance. Credentials and private user data are not pasted into development prompts. AI-generated code is reviewed and tested like other code. An AI-use log records the tool/model, purpose, affected artifact and human validation. AI is not a fifth accountable team member; estimates already assume assistance and include review/rework, so no further automatic productivity discount is applied.
+---
 
-**Data semantics.** Store timestamps in UTC and retain the user’s display timezone. Use stable exercise IDs and explicit units; normalize external load to kilograms. Volume is the sum of repetitions × external load for eligible resistance sets, not an estimate of physiological effort. Unweighted exercises are tracked by repetitions and are not assigned invented bodyweight load. Personal records are exercise-specific, with separate maximum load and repetition records. Program edits do not retroactively alter historical workout snapshots. Muscle-group indicators summarize recorded workload according to documented exercise tags; they do not claim to measure strength or muscle growth directly.
+## 2. Project Plan — Work Breakdown Structure (WBS)
 
-Client-generated operation IDs are used for queued writes, uniqueness constraints for idempotency, and a record version for optimistic concurrency. On a stale-version response, preserve the local draft, retrieve the server version and request an explicit keep/edit decision. AI prompts receive only the minimum current-user context required for the request. Unknown exercises and ambiguous units require correction before confirmation. Sharing is opt-in with server-enforced visibility; revocation removes future application access but cannot retract content already observed by a recipient.
+Each task from Section 1.3 is decomposed into activities numbered WBS-*n*.*x*, where *n* is the number of the parent task; every activity therefore has exactly one parent. Each activity has a single accountable owner, and its completion condition includes implementation or authoring, the relevant tests and peer review.
 
-## 2. Project Plan — Work Breakdown Structure
+Sizes are assigned from the scope of each activity before its effort is estimated, using the following scale. The hour ranges are reference values for checking the estimates in Section 3.
 
-Each WBS row is a bounded work package with one accountable owner. Its completion condition includes implementation or document production, relevant tests, integration, and peer review. Requirements are elaborated into user stories in the requirements specification. The IDs below remain stable even if dates are later rebaselined.
+| Size | Scope characteristics | Reference effort |
+|---|---|---|
+| T (Tiny) | Configuration, a repeat of existing work, or a fixed time-box | ≤ 2 h |
+| S (Small) | One component (a screen, an endpoint group or a document) following an established pattern | 2–4 h |
+| M (Medium) | Several coordinated components, or one component with non-trivial logic or unfamiliar technology | 4–8 h |
+| L (Large) | Work spanning client, server and data layers | 8–16 h |
+| XL (Extra-large) | Work that cannot be completed within a single iteration | > 16 h |
 
-The five-level size scale is T (up to 2 hours), S (over 2–4), M (over 4–8), L (over 8–16), and XL (over 16). L/XL items must be decomposed before commitment. The initial work packages are intentionally sized M at seven person-hours each; this is a uniform planning envelope, not evidence that every feature has identical complexity. A work package can address multiple explicitly listed parent tasks when it integrates one vertical slice.
+L and XL activities must be decomposed before scheduling, so none appear in the baseline.
 
-| WBS ID | Parent task ID(s) | Activity | Completion condition | Size |
+**Mandatory activities**
+
+| WBS activity ID | Parent task ID | Activity / subtask | Description / completion condition | Size (T/S/M/L/XL) |
 |---|---|---|---|---|
-| WBS-1.1 | T-01, T-18 | UX and requirements baseline | Map welcome-to-history journey; sketch Android screens and validation/error states; finalize specification content and acceptance cases by 1 November. | M |
-| WBS-1.2 | T-15, T-16 | API and AI feasibility | Define API boundaries; verify an accessible model identifier and structured draft; check .NET/EF/Npgsql compatibility and record decision. | M |
-| WBS-1.3 | T-16 | Repository and CI foundation | Create backend/Flutter skeletons, Compose PostgreSQL, secrets example and CI build/test jobs; prove clean checkout starts. | M |
-| WBS-1.4 | T-02, T-03, T-16 | Data and catalogue baseline | Define entities/ownership and units; create first migrations; curate 20 exercises and three program seeds; review goal fields. | M |
-| WBS-2.1 | T-01, T-18 | Authentication and onboarding UI | Wire email/Google flows, onboarding and profile screens; submit the already prepared specification on 2 November, then cross-check implementation coverage. | M |
-| WBS-2.2 | T-01, T-02, T-16 | Identity and profile APIs | Verify Firebase tokens; add owner-scoped profile and goal APIs; reject unauthenticated/foreign-user access. | M |
-| WBS-2.3 | T-01, T-16, T-17 | Firebase and integration harness | Configure Android/Firebase and development App Check; run identity/migration tests against PostgreSQL; supply reusable API fixtures. | M |
-| WBS-2.4 | T-03, T-04 | Catalogue and program data access | Deliver catalogue filtering and versioned program persistence; render template selection and validate seed completeness. | M |
-| WBS-3.1 | T-04, T-06 | Manual program and workout UI | Create program editor and live/post-workout forms with units, set validation, confirmation and visible draft state. | M |
-| WBS-3.2 | T-04, T-06 | Workout and program APIs | Implement owned program/workout create/read/edit/delete and historical snapshots; add unit/authorization tests. | M |
-| WBS-3.3 | T-08, T-16 | Local drafts and queue | Persist manual drafts and queued operations in Drift; isolate accounts; prove local saves survive app termination. | M |
-| WBS-3.4 | T-02, T-09 | Goals and progress specification | Wire manual goals; define and test metric fixtures, record eligibility and dashboard states; review volume/muscle-group semantics. | M |
-| WBS-4.1 | T-05, T-09 | Calendar and history UI | Implement weekly/monthly navigation, schedule edit/cancel and history detail screens; finalize analysis-report content by 22 November. | M |
-| WBS-4.2 | T-05, T-08 | Scheduling and sync APIs | Implement UTC scheduling, operation deduplication, version checks and sync conflict responses with PostgreSQL tests. | M |
-| WBS-4.3 | T-05, T-08 | Reminders and sync integration | Integrate FCM/background jobs, retry policy and stale-reminder cancellation; exercise disconnect/reconnect and conflict UI. | M |
-| WBS-4.4 | T-09, T-10 | Progress and motivation engine | Implement volume/session metrics, personal records, three badge rules and curated daily quotes; recompute after edits/deletions. | M |
-| WBS-5.1 | T-07, T-18 | AI review UI and analysis report | Implement draft comparison/edit/approve/discard for text logs; submit the prepared analysis report on 23 November; maintain domain-flow and traceability updates. | M |
-| WBS-5.2 | T-07, T-15 | AI logging and provider adapter | Implement bounded server context, structured parsing, catalogue mapping, timeout, quota controls and invalid-output rejection. | M |
-| WBS-5.3 | T-08, T-17 | Core integration and failure tests | Run offline restart, duplicate replay, conflict, ownership and reminder-race tests; fix integration defects and preserve evidence. | M |
-| WBS-5.4 | T-11, T-12 | Friends and sharing foundation | Deliver friend requests/acceptance/removal and explicit summary sharing/revocation with visibility constraints and fixtures. | M |
-| WBS-6.1 | T-02, T-04, T-10 | AI planning and insights UI | Reuse review components for goal/program drafts; connect personalized insights with source metrics and manual fallback; assemble design-report content by 6 December. | M |
-| WBS-6.2 | T-02, T-04, T-10, T-15 | AI planning and insights service | Generate goal/program drafts and bounded explanations; validate fields, forbid autonomous writes and test private-context isolation. | M |
-| WBS-6.3 | T-13, T-14 | Chat and moderation APIs | Implement group membership, paginated text chat, report/block actions, moderator review/hide/restrict and audit events. | M |
-| WBS-6.4 | T-11, T-12 | Social and joint-workout UI | Connect friends/sharing screens; implement joint invites with accept/decline/cancel and independent participant logs. | M |
-| WBS-7.1 | T-13, T-14, T-18 | Chat moderation UI and design report | Connect group chat/report/block screens and moderator controls; submit the prepared design report on 7 December and maintain architecture/interface changes. | M |
-| WBS-7.2 | T-15, T-17 | AI and authorization hardening | Run adversarial/ambiguous AI cases, role/ownership tests and quota/timeout paths; fix defects and freeze API contracts. | M |
-| WBS-7.3 | T-16, T-17 | Deployment and recovery rehearsal | Rehearse Compose restore; create Helm configuration; install/health-check/rollback in a local Kubernetes cluster; capture evidence. | M |
-| WBS-7.4 | T-09, T-12, T-17 | Whole-product integration | Test calendar/social/progress interactions, revocation and recalculation; resolve cross-screen bugs and freeze feature scope. | M |
-| WBS-8.1 | T-17, T-18 | Usability and documentation validation | Run five-person adult usability sessions; verify accessibility and instructions; prepare test-report narrative and defect summary. | M |
-| WBS-8.2 | T-17, T-18 | Verification evidence and test report | Execute final API/database/AI regression cases, record environment and traceability; consolidate test results for 21 December. | M |
-| WBS-8.3 | T-16, T-17 | Performance and release candidate | Measure target workload, scan dependencies/images, exercise clean build/install and freeze a tested release candidate. | M |
-| WBS-8.4 | T-17, T-18 | Acceptance and demo rehearsal | Execute full user/customer acceptance scenarios and data fixtures; rehearse demo, record outcomes and prepare presentation evidence. | M |
-| WBS-9.1 | T-17, T-18 | Presentation and final documentation | Resolve presentation/UI/documentation defects, verify final traceability and deliver the presentation package for 28 December. | M |
-| WBS-9.2 | T-17, T-18 | Final evidence and handover | Verify fixes and test addendum, finish API/user/admin notes and AI-use record, and perform final acceptance cross-check. | M |
-| WBS-9.3 | T-16, T-17 | Code release and reproducibility | Tag release and package Android/code/configuration by 25 December; rebuild from tag and verify no secrets or release blockers. | M |
-| WBS-9.4 | T-12, T-17, T-18 | Demo execution and acceptance record | Verify social/independent-log demo data; demonstrate on 26 December and record outcome, limitations and follow-up actions. | M |
+| WBS-1.1 | T-01 | UX baseline and navigation shell | Low-fidelity layouts for the primary screens, shared loading/error components and the navigation structure are reviewed by the Product Owner. | S |
+| WBS-1.2 | T-01 | Authentication and onboarding UI | Email and Google sign-in, sign-up, onboarding and profile screens work against the API; loading, failure and logout paths have widget tests. | M |
+| WBS-1.3 | T-01 | Identity and profile APIs | Firebase tokens are verified server-side; profile endpoints enforce ownership; unauthenticated, expired-token and non-owner requests are rejected in tests. | M |
+| WBS-1.4 | T-01 | Firebase and App Check configuration | The Firebase project, Google Sign-In fingerprints and App Check debug/release providers are configured and documented. | S |
+| WBS-2.1 | T-02 | Goal and preference management | Users create and edit manual goals, experience level, available equipment and notification preferences; values persist after restart. | S |
+| WBS-3.1 | T-03 | Domain data model and catalogue seed | Ownership, units and program-version tables are migrated; 20 reviewed exercises and three templates are seeded. | M |
+| WBS-3.2 | T-03 | Catalogue and template APIs | Exercises can be filtered by muscle group and templates retrieved; query tests pass against PostgreSQL. | M |
+| WBS-3.3 | T-03 | Program APIs with version snapshots | Owner-scoped program CRUD stores an immutable version on each edit; workouts reference the version used. | S |
+| WBS-3.4 | T-03 | Program editor UI | Users create, edit and reuse programs from templates or the catalogue; invalid sets are rejected in the form. | S |
+| WBS-4.1 | T-04 | Calendar UI | Weekly and monthly views display sessions in local time; create, move and cancel dialogs work against the API. | S |
+| WBS-4.2 | T-04 | Scheduling APIs | Sessions are stored in UTC with the user's display timezone; create, move and cancel endpoints pass timezone tests. | S |
+| WBS-4.3 | T-04 | Reminder jobs and FCM delivery | A background job dispatches reminders through FCM, re-checks cancellation before sending and records delivery attempts; a controlled-device test succeeds. | S |
+| WBS-5.1 | T-05 | Workout logging UI | Live and post-workout forms record sets, repetitions and load; edit and delete require confirmation. | S |
+| WBS-5.2 | T-05 | Workout record APIs | Owner-scoped workout and set CRUD validates units and references program versions; transaction tests pass. | S |
+| WBS-6.1 | T-06 | Local drafts and operation queue | Drafts and pending operations persist in user-scoped SQLite tables and survive app restart; logout clears them after a warning. | M |
+| WBS-6.2 | T-06 | Idempotent synchronization endpoints | Client-generated operation IDs are unique; replaying an operation creates one record; the latest synchronized write replaces the server version. | T |
+| WBS-6.3 | T-06 | Client synchronization and reconnection | Queued operations replay in order after reconnection with bounded retries; an offline edit overwrites the server copy. | S |
+| WBS-7.1 | T-07 | Metric definitions and fixtures | Hand-computed fixtures cover empty history, deleted sets, zero external load, mixed categories and both record types. | T |
+| WBS-7.2 | T-07 | Progress engine | Volume, session frequency, load and repetition records and muscle-group workload match the fixtures and recalculate after edits or deletions. | M |
+| WBS-7.3 | T-07 | History and progress dashboard UI | History list/detail and a dashboard with two charts display server-computed metrics with empty and error states. | S |
+| WBS-8.1 | T-08 | AI provider feasibility and adapter skeleton | One structured-output request succeeds against the selected provider; model identifier, latency, cost and data-handling settings are recorded; a stub adapter exists. | S |
+| WBS-8.2 | T-08 | Natural-language logging service | Text is converted into catalogue-mapped sets; unknown exercises, missing units, malformed output, timeouts and quota exhaustion produce clear failures; nothing is saved without confirmation. | M |
+| WBS-8.3 | T-08 | AI draft review UI | Users review, edit, approve or discard a generated workout draft; the original text is retained on failure. | S |
+| WBS-8.4 | T-08 | Goal, program and insight service | Goal suggestions, program drafts and insights are returned as editable proposals; insight prompts contain only the user's own computed metrics. | M |
+| WBS-8.5 | T-08 | Goal, program and insight UI | Three review screens allow approval or rejection with a manual fallback when the provider is unavailable. | S |
+| WBS-9.1 | T-09 | Friend and sharing APIs | Requests can be sent, accepted, rejected and removed; workout summaries can be shared and revoked; a third user cannot read restricted content. | M |
+| WBS-9.2 | T-09 | Friend and sharing UI | Friend list, request inbox and share/revoke dialogs work end to end between two test accounts. | S |
+| WBS-10.1 | T-10 | Repository, CI and Compose foundation | Backend and Flutter skeletons build in CI; Compose starts PostgreSQL; the EF Core and Npgsql versions pass a migration and rollback check. | S |
+| WBS-10.2 | T-10 | Database backup and restore rehearsal | The seeded database is backed up and restored into an isolated instance; row counts and sample records match. | S |
+| WBS-10.3 | T-10 | Release packaging and reproducibility | The accepted tag is rebuilt from a clean checkout; the APK, source archive and configuration examples pass the release checklist. | T |
+| WBS-10.4 | T-10 | Restore and scan regression | Restore and dependency/image scans are repeated on the feature-complete build with recorded results. | T |
+| WBS-11.1 | T-11 | Security scanning and authorization test harness | Secret, dependency and image scans run in CI; reusable fixtures support negative authorization tests. | S |
+| WBS-11.2 | T-11 | Core integration and failure tests | Duplicate replay, restart with pending operations, offline overwrite and cancelled-reminder cases pass. | S |
+| WBS-11.3 | T-11 | Security and AI hardening | Adversarial AI inputs and ownership/friendship checks pass on all integrated endpoints. | S |
+| WBS-11.4 | T-11 | Whole-product integration | Scheduling, logging, progress and sharing interact correctly across screens, including revocation and recalculation. | S |
+| WBS-11.5 | T-11 | Accessibility review and setup validation | Primary flows meet the contrast, text-scaling, labelling and 48 dp target checklist; another member reproduces the setup instructions. | T |
+| WBS-11.6 | T-11 | Regression evidence | The full API, database and AI regression is executed and recorded with commit, environment and outcomes. | S |
+| WBS-11.7 | T-11 | Performance measurement and release candidate | Load results for the non-AI endpoints are recorded; final scans and a clean install succeed. | S |
+| WBS-11.8 | T-11 | Acceptance scenarios and demo rehearsal | The end-to-end acceptance list passes and the two-user demonstration is rehearsed on seed data. | S |
+| WBS-11.9 | T-11 | Final defect fixes and regression | Low-severity UI defects are resolved and affected cases re-run; no new features are added. | T |
+| WBS-11.10 | T-11 | Post-report test addendum | Changes made after the test report are verified and documented in a dated addendum. | T |
+| WBS-12.1 | T-12 | Requirement Specification Report | User stories, functional and non-functional requirements and acceptance conditions are reviewed by the Product Owner and submitted by 2 November. | S |
+| WBS-12.2 | T-12 | Requirement Analysis Report | Domain model, workflows, metric and privacy constraints and traceability are reviewed and submitted by 23 November. | S |
+| WBS-12.3 | T-12 | Software Design Report | Architecture, schema, API, client state, security and deployment design are consolidated and reviewed by 7 December. | S |
+| WBS-12.4 | T-12 | Software Test Report | Executed tests, outcomes, defects, environment and limitations are consolidated and reviewed by 21 December. | S |
+| WBS-12.5 | T-12 | User/admin documentation and AI-use record | Setup, user and administrator notes and the AI-use record are complete; another member verifies the instructions. | S |
+| WBS-12.6 | T-12 | Presentation package | Slides present the problem, requirements, design, results, limitations and next stages; the team reviews them before 28 December. | S |
+| WBS-12.7 | T-12 | Demo preparation and acceptance record | The demo fixture, backup recording and acceptance-record form are ready before 26 December. | T |
+| WBS-12.8 | T-12 | Demonstration delivery | Fixed-date event on 2026-12-26; all four members attend and the outcome is recorded. | T |
+| WBS-12.9 | T-12 | Presentation delivery | Fixed-date event on 2026-12-28; all four members attend and the outcome is recorded. | T |
 
-**Decomposition and review rules.** Ahmet owns the main user journey and report assembly; Can owns backend/AI logic; Hamza owns integration/infrastructure; Selim owns data/progress/social coordination. This allocation follows the team’s roles while sharing integration work. Ahmet and Selim review one another’s client work; Can and Hamza review one another’s backend/infrastructure work. Cross-domain changes receive the affected owner’s review. Peer-review time is included in each member’s weekly envelope.
+**Optional activities** (unscheduled until selected)
 
-The first implementation week turns requirements into testable contracts while infrastructure and seed data progress in parallel. Detailed requirements are ready in WBS-1.1 by 1 November and submitted at the start of WBS-2.1 on 2 November; implementation continues thereafter. Analysis/design documents consolidate the evolving design before their deadlines rather than delaying all development until December. Each weekly integration gate requires the slice to build, pass its targeted tests, and expose a stable contract to dependent activities.
+| WBS activity ID | Parent task ID | Activity / subtask | Description / completion condition | Size (T/S/M/L/XL) |
+|---|---|---|---|---|
+| WBS-13.1 | T-13 | Badges and daily quotes | Three deterministic badge rules and a curated daily quote; awards recalculate after record edits. | S |
+| WBS-14.1 | T-14 | Group chat APIs | Paginated text messages persist; only current members, managed by the group creator, can read or post. | S |
+| WBS-14.2 | T-14 | Group chat UI and integration | Group, member and message screens; outsider and removed-member access is rejected. | S |
+| WBS-15.1 | T-15 | Joint-workout APIs | Invite, accept, decline and cancel a shared session while each participant keeps an independent log. | S |
+| WBS-15.2 | T-15 | Joint-workout UI and integration | Invitation and status flows; cancellation updates reminders for all participants. | S |
+| WBS-16.1 | T-16 | Global plan-sharing APIs | Publish and unpublish structured plans (no free-text fields); browse public plans; import an independent copy. | S |
+| WBS-16.2 | T-16 | Global plan-sharing UI and integration | Publish, browse and import flows; no workout history or profile data is exposed. | S |
+| WBS-17.1 | T-17 | Helm chart and local Kubernetes smoke test | Install, migration job, health check and rollback succeed on a local cluster. | S |
+| WBS-17.2 | T-17 | Kubernetes regression on release candidate | The smoke test is repeated on the release candidate. | T |
+
+**WBS decomposition notes:**  
+Work was decomposed along functional lines so that each activity produces a testable result. Client and server work for the same feature are separate activities with different owners, connected by an API contract that is agreed at the start of the server activity. Testing specific to an activity is part of that activity; cross-feature verification is collected under T-11, and report writing under T-12. Ahmet and Selim review each other's client work, and Can and Hamza review each other's backend and infrastructure work; review time is included in the reviewer's own estimates.
+
+> **Course guideline note:** User stories for these subtasks will be written in the separate requirements document; this project plan defines and sizes the subtasks.
+
+---
 
 ## 3. Estimates
 
-### 3.1 Estimation Method
+### 3.1 Effort Estimates
 
-One person-week means **40 person-hours** throughout this plan; it does not mean one student’s eight-hour project week. Each M package has an initial estimate of seven hours, or 0.175 person-weeks. A typical envelope is 4.5 hours of focused implementation/authoring, 1.5 hours of testing/review/rework, and one hour of integration, coordination and documentation. The mix changes by package; the seven-hour total does not. Weekly coordination is a 20-minute team check-in, with remaining communication handled asynchronously inside that allowance.
+One person-week (man-week) equals 40 person-hours. Estimates are bottom-up and include implementation or authoring, targeted tests, peer review and integration. Coordination is limited to a 20-minute weekly check-in; other coordination is asynchronous and included in the activities. The figures already include the assumed AI-assistance savings described in Section 3.3.
 
-These are bottom-up work-package budget estimates based on bounded pilot behavior, reuse of standard authentication/client libraries, generated scaffolding and a single primary model adapter. They are not historical velocity measurements or a three-point statistical PERT estimate. At the end of the first two weeks, actual hours and accepted results with the baseline are to be compared. If the remaining work no longer fits, record a revised forecast and escalate the scope/time decision rather than relabeling unfinished work as complete.
-
-| WBS ID | Size | Effort (person-weeks) | Hours | Estimate basis |
+| WBS activity ID | Size | Estimated effort (man-weeks) | Hours | Basis / assumptions |
 |---|---|---|---|---|
-| WBS-1.1 | M | 0.175 | 7 | UX and requirements baseline; bounded slice, tests/review and integration included. |
-| WBS-1.2 | M | 0.175 | 7 | API and AI feasibility; bounded slice, tests/review and integration included. |
-| WBS-1.3 | M | 0.175 | 7 | Repository and CI foundation; bounded slice, tests/review and integration included. |
-| WBS-1.4 | M | 0.175 | 7 | Data and catalogue baseline; bounded slice, tests/review and integration included. |
-| WBS-2.1 | M | 0.175 | 7 | Authentication and onboarding UI; bounded slice, tests/review and integration included. |
-| WBS-2.2 | M | 0.175 | 7 | Identity and profile APIs; bounded slice, tests/review and integration included. |
-| WBS-2.3 | M | 0.175 | 7 | Firebase and integration harness; bounded slice, tests/review and integration included. |
-| WBS-2.4 | M | 0.175 | 7 | Catalogue and program data access; bounded slice, tests/review and integration included. |
-| WBS-3.1 | M | 0.175 | 7 | Manual program and workout UI; bounded slice, tests/review and integration included. |
-| WBS-3.2 | M | 0.175 | 7 | Workout and program APIs; bounded slice, tests/review and integration included. |
-| WBS-3.3 | M | 0.175 | 7 | Local drafts and queue; bounded slice, tests/review and integration included. |
-| WBS-3.4 | M | 0.175 | 7 | Goals and progress specification; bounded slice, tests/review and integration included. |
-| WBS-4.1 | M | 0.175 | 7 | Calendar and history UI; bounded slice, tests/review and integration included. |
-| WBS-4.2 | M | 0.175 | 7 | Scheduling and sync APIs; bounded slice, tests/review and integration included. |
-| WBS-4.3 | M | 0.175 | 7 | Reminders and sync integration; bounded slice, tests/review and integration included. |
-| WBS-4.4 | M | 0.175 | 7 | Progress and motivation engine; bounded slice, tests/review and integration included. |
-| WBS-5.1 | M | 0.175 | 7 | AI review UI and analysis report; bounded slice, tests/review and integration included. |
-| WBS-5.2 | M | 0.175 | 7 | AI logging and provider adapter; bounded slice, tests/review and integration included. |
-| WBS-5.3 | M | 0.175 | 7 | Core integration and failure tests; bounded slice, tests/review and integration included. |
-| WBS-5.4 | M | 0.175 | 7 | Friends and sharing foundation; bounded slice, tests/review and integration included. |
-| WBS-6.1 | M | 0.175 | 7 | AI planning and insights UI; bounded slice, tests/review and integration included. |
-| WBS-6.2 | M | 0.175 | 7 | AI planning and insights service; bounded slice, tests/review and integration included. |
-| WBS-6.3 | M | 0.175 | 7 | Chat and moderation APIs; bounded slice, tests/review and integration included. |
-| WBS-6.4 | M | 0.175 | 7 | Social and joint-workout UI; bounded slice, tests/review and integration included. |
-| WBS-7.1 | M | 0.175 | 7 | Chat moderation UI and design report; bounded slice, tests/review and integration included. |
-| WBS-7.2 | M | 0.175 | 7 | AI and authorization hardening; bounded slice, tests/review and integration included. |
-| WBS-7.3 | M | 0.175 | 7 | Deployment and recovery rehearsal; bounded slice, tests/review and integration included. |
-| WBS-7.4 | M | 0.175 | 7 | Whole-product integration; bounded slice, tests/review and integration included. |
-| WBS-8.1 | M | 0.175 | 7 | Usability and documentation validation; bounded slice, tests/review and integration included. |
-| WBS-8.2 | M | 0.175 | 7 | Verification evidence and test report; bounded slice, tests/review and integration included. |
-| WBS-8.3 | M | 0.175 | 7 | Performance and release candidate; bounded slice, tests/review and integration included. |
-| WBS-8.4 | M | 0.175 | 7 | Acceptance and demo rehearsal; bounded slice, tests/review and integration included. |
-| WBS-9.1 | M | 0.175 | 7 | Presentation and final documentation; bounded slice, tests/review and integration included. |
-| WBS-9.2 | M | 0.175 | 7 | Final evidence and handover; bounded slice, tests/review and integration included. |
-| WBS-9.3 | M | 0.175 | 7 | Code release and reproducibility; bounded slice, tests/review and integration included. |
-| WBS-9.4 | M | 0.175 | 7 | Demo execution and acceptance record; bounded slice, tests/review and integration included. |
-| Total | — | 6.300 | 252 | 36 work packages × 7 hours |
+| WBS-1.1 | S | 0.075 | 3 | Approximately eight primary screens at low fidelity; shared state components are built once and reused by later UI packages. |
+| WBS-1.2 | M | 0.150 | 6 | Five screens; Google Sign-In uses the standard Flutter plugin; three failure states require dedicated tests. |
+| WBS-1.3 | M | 0.125 | 5 | Token-verification middleware plus four endpoints; the middleware is reused by every later API package. |
+| WBS-1.4 | S | 0.075 | 3 | Configuration work following vendor documentation; no application logic. |
+| WBS-2.1 | S | 0.075 | 3 | One form with three goal types; reuses the profile endpoints and ownership checks from WBS-1.3. |
+| WBS-3.1 | M | 0.125 | 5 | Approximately eight tables; the seed data is authored once as migration data and reviewed against exercise references. |
+| WBS-3.2 | M | 0.125 | 5 | Read-only endpoints over seeded data; filtering is the only non-trivial logic. |
+| WBS-3.3 | S | 0.100 | 4 | Standard CRUD following the WBS-1.3 pattern; the snapshot rule is the only new logic. |
+| WBS-3.4 | S | 0.100 | 4 | One editor screen with an exercise picker and set table built from WBS-1.1 components. |
+| WBS-4.1 | S | 0.100 | 4 | Views come from an existing Flutter calendar package; effort lies in the three dialogs and empty/error states. |
+| WBS-4.2 | S | 0.100 | 4 | Three endpoints following the established pattern plus timezone conversion tests. |
+| WBS-4.3 | S | 0.100 | 4 | One background job and token registration; tested on a single physical device. |
+| WBS-5.1 | S | 0.100 | 4 | Both forms share one set-entry component, which is also reused by WBS-8.3. |
+| WBS-5.2 | S | 0.100 | 4 | Follows the endpoint and validation pattern established in WBS-3.3. |
+| WBS-6.1 | M | 0.150 | 6 | Two Drift tables and queue logic; estimated at the upper end of M because the team has not built an offline queue before. |
+| WBS-6.2 | T | 0.050 | 2 | A uniqueness constraint and replay handling on existing write endpoints; last-write-wins requires no version comparison. |
+| WBS-6.3 | S | 0.075 | 3 | A connectivity listener and ordered replay; no conflict screens are needed. |
+| WBS-7.1 | T | 0.050 | 2 | Five fixture scenarios calculated manually; no implementation. |
+| WBS-7.2 | M | 0.150 | 6 | Four metric families computed server-side; correctness is checked directly against WBS-7.1 fixtures. |
+| WBS-7.3 | S | 0.075 | 3 | Uses an existing charting package; data are already computed by WBS-7.2. |
+| WBS-8.1 | S | 0.075 | 3 | A single proof-of-concept request and an interface with one real and one stub implementation. |
+| WBS-8.2 | M | 0.175 | 7 | Prompt, schema and validation design plus five failure paths; validation is the principal cost. |
+| WBS-8.3 | S | 0.100 | 4 | Reuses the WBS-5.1 set-entry component in an editable review mode. |
+| WBS-8.4 | M | 0.150 | 6 | Three prompt types reuse the WBS-8.2 adapter and validation layer. |
+| WBS-8.5 | S | 0.100 | 4 | Follows the review pattern established in WBS-8.3. |
+| WBS-9.1 | M | 0.150 | 6 | Two small state machines (friendship, share) with three-user visibility tests. |
+| WBS-9.2 | S | 0.075 | 3 | Three screens reusing existing list and dialog components. |
+| WBS-10.1 | S | 0.100 | 4 | Standard project templates; the compatibility check is a short scripted test. |
+| WBS-10.2 | S | 0.075 | 3 | One dump/restore script and a comparison query, executed once. |
+| WBS-10.3 | T | 0.050 | 2 | Repeats existing build steps against the final tag. |
+| WBS-10.4 | T | 0.050 | 2 | Re-executes scripts written in WBS-10.2 and WBS-11.1. |
+| WBS-11.1 | S | 0.075 | 3 | CI configuration for existing scanning tools plus one fixture library. |
+| WBS-11.2 | S | 0.075 | 3 | Four scripted scenarios; defects found are fixed by the owning package. |
+| WBS-11.3 | S | 0.100 | 4 | Approximately 20 negative cases reusing the WBS-11.1 harness. |
+| WBS-11.4 | S | 0.100 | 4 | Cross-feature scenarios executed manually on the Android device. |
+| WBS-11.5 | T | 0.050 | 2 | Checklist review of five primary flows; no external participants. |
+| WBS-11.6 | S | 0.100 | 4 | Execution and recording of existing automated suites. |
+| WBS-11.7 | S | 0.075 | 3 | One five-minute load run with ten simulated users plus repeated scans. |
+| WBS-11.8 | S | 0.075 | 3 | Execution of a predefined scenario list. |
+| WBS-11.9 | T | 0.050 | 2 | Fixed time-box for minor corrections. |
+| WBS-11.10 | T | 0.050 | 2 | Fixed time-box; limited to changes from WBS-11.9. |
+| WBS-12.1 | S | 0.100 | 4 | Approximately 12 tasks expanded into user stories; structure and first draft are AI-assisted. |
+| WBS-12.2 | S | 0.100 | 4 | Builds on the specification and the metric definitions already fixed in WBS-7.1. |
+| WBS-12.3 | S | 0.100 | 4 | Consolidates design decisions already documented in pull requests and API contracts. |
+| WBS-12.4 | S | 0.075 | 3 | Consolidates evidence produced by WBS-11.x; no new testing. |
+| WBS-12.5 | S | 0.075 | 3 | Short guides derived from the setup steps validated in WBS-11.5. |
+| WBS-12.6 | S | 0.075 | 3 | About 15 slides drawn from existing reports. |
+| WBS-12.7 | T | 0.050 | 2 | Reuses the rehearsal from WBS-11.8. |
+| **Preparation subtotal** | — | **4.425** | **177** | Sum of the 48 mandatory preparation activities. |
+| WBS-12.8 | T | 0.100 | 4 | Four members × 1 h at the demonstration on 26 December. |
+| WBS-12.9 | T | 0.100 | 4 | Four members × 1 h at the presentation on 28 December. |
+| **Total (mandatory)** | — | **4.625** | **185** | — |
 
-### 3.2 Capacity, Reserve and Duration
+Optional activities are estimated separately and excluded from the mandatory total (33 h, 0.825 man-weeks):
 
-| Measure | Per member | Four-member team |
-|---|---:|---:|
-| Planned effort per week | 7 h | 28 h |
-| Protected contingency per week | 1 h | 4 h |
-| Baseline available effort per week | 8 h | 32 h |
-| Potential upper availability | 10 h | 40 h |
-| Nine-week planned effort | 63 h / 1.575 person-weeks | 252 h / 6.300 person-weeks |
-| Nine-week protected contingency | 9 h | 36 h / 0.900 person-weeks |
-| Nine-week baseline capacity | 72 h | 288 h / 7.200 person-weeks |
-| Potential additional capacity beyond baseline | 18 h | 72 h |
+| WBS activity ID | Size | Estimated effort (man-weeks) | Hours | Basis / assumptions |
+|---|---|---|---|---|
+| WBS-13.1 | S | 0.100 | 4 | Three rule functions over existing progress data and a static quote list. |
+| WBS-14.1 | S | 0.100 | 4 | Two tables and four endpoints; membership checks follow the friendship pattern from WBS-9.1. |
+| WBS-14.2 | S | 0.100 | 4 | Three screens with polling while the chat screen is open. |
+| WBS-15.1 | S | 0.100 | 4 | One invitation state machine reusing scheduling endpoints from WBS-4.2. |
+| WBS-15.2 | S | 0.100 | 4 | Invitation list and status indicators on existing calendar screens. |
+| WBS-16.1 | S | 0.100 | 4 | Publish flag and copy operation on existing program versions. |
+| WBS-16.2 | S | 0.100 | 4 | Browse list and import action reusing the program editor. |
+| WBS-17.1 | S | 0.100 | 4 | One Helm chart for the existing images; the team has not used Helm before. |
+| WBS-17.2 | T | 0.025 | 1 | Re-execution of the WBS-17.1 script. |
+| **Optional total** | — | **0.825** | **33** | — |
 
-Reserve is 14.3% of planned effort, or 12.5% of baseline capacity. It covers measured rework, individual exam disruption and integration defects. It is not pre-assigned to optional web/iOS work. There is no separate nine-week reserve block; this is effort reserve within the existing calendar. 
+**Estimation method:**  
+Each activity was first sized using the scale in Section 2. The owner then estimated the hours by counting the concrete elements involved (screens, endpoints, tables, test scenarios or report sections) and comparing them with similar work the team has done in earlier courses. The estimate was then checked against the reference range for the size, and any reuse of earlier components is stated in the basis column. Because no velocity data exist for this team, actual hours will be compared with the estimates at the end of week 2 and the remaining work will be re-forecast; the original baseline is retained for comparison.
 
-At 0.175 FTE, a seven-hour package occupies one elapsed week: 0.175 person-weeks ÷ 0.175 FTE = 1 week. This includes coordination and waiting across a student workweek. Two members cannot automatically halve every task because serial work and reviews remain. The final code and demo packages distribute seven hours over five and six calendar days respectively; they do not require a full-time week.
+**Effort versus duration:** Durations are derived from effort under the allocation convention in Section 3.2: every activity is worked at an average of one person-hour per calendar day (0.175 FTE). An activity of *h* hours therefore has a duration of *h* days. This convention reflects part-time student work; members may batch the hours, provided that hand-offs to dependent activities occur on the scheduled dates.
+
+### 3.2 Capacity and Reserve
+
+| Member | Preparation hours | Demo (26 Dec) | Protected reserve | Uncommitted | Capacity (weeks 1–9) | Presentation (28 Dec) | Optional if all selected |
+|---|---|---|---|---|---|---|---|
+| Ahmet Abalı | 44 | 1 | 9 | 18 | 72 | 1 | 8 |
+| Can Sei Keçeci | 42 | 1 | 9 | 20 | 72 | 1 | 8 |
+| Hamza Çevikbaş | 45 | 1 | 9 | 17 | 72 | 1 | 9 |
+| Selim Efe Aytemur | 46 | 1 | 9 | 16 | 72 | 1 | 8 |
+| **Total** | **177** | **4** | **36** | **71** | **288** | **4** | **33** |
+
+Mandatory effort is 185 hours (177 preparation and 8 delivery hours). Together with the 36-hour protected reserve, this leaves 71 uncommitted hours within the 288-hour capacity of weeks 1–9. The presentation on 28 December falls in week 10; its one hour per member is recorded as a separate commitment. Uncommitted hours belong to specific members and dates, so they cannot automatically absorb delays elsewhere; the per-member loads must be recalculated before an optional item is selected.
+
+### 3.3 AI-assistance Scenarios
+
+The estimates in Section 3.1 assume that development assistants reduce effort on scaffolding, routine CRUD code, form construction and first drafts of documents. The saving assumed for each activity is net of prompting and correction time. Verification, integration, coordination and fixed time-boxes are assumed to receive no saving. The reduced-benefit scenario assumes that only half of the expected saving is realized.
+
+| WBS activity ID | Without assistance (h) | Assumed saving (h) | Baseline (h) | Reduced benefit (h) |
+|---|---|---|---|---|
+| WBS-1.1 | 4 | 1 | 3 | 3.5 |
+| WBS-1.2 | 8 | 2 | 6 | 7 |
+| WBS-1.3 | 7 | 2 | 5 | 6 |
+| WBS-1.4 | 4 | 1 | 3 | 3.5 |
+| WBS-3.1 | 7 | 2 | 5 | 6 |
+| WBS-3.2 | 7 | 2 | 5 | 6 |
+| WBS-3.3 | 5 | 1 | 4 | 4.5 |
+| WBS-3.4 | 5 | 1 | 4 | 4.5 |
+| WBS-4.1 | 5 | 1 | 4 | 4.5 |
+| WBS-4.2 | 5 | 1 | 4 | 4.5 |
+| WBS-4.3 | 5 | 1 | 4 | 4.5 |
+| WBS-5.1 | 5 | 1 | 4 | 4.5 |
+| WBS-5.2 | 5 | 1 | 4 | 4.5 |
+| WBS-6.1 | 8 | 2 | 6 | 7 |
+| WBS-6.3 | 4 | 1 | 3 | 3.5 |
+| WBS-7.2 | 8 | 2 | 6 | 7 |
+| WBS-7.3 | 4 | 1 | 3 | 3.5 |
+| WBS-8.1 | 4 | 1 | 3 | 3.5 |
+| WBS-8.2 | 9 | 2 | 7 | 8 |
+| WBS-8.3 | 5 | 1 | 4 | 4.5 |
+| WBS-8.4 | 8 | 2 | 6 | 7 |
+| WBS-8.5 | 6 | 2 | 4 | 5 |
+| WBS-9.1 | 8 | 2 | 6 | 7 |
+| WBS-9.2 | 5 | 2 | 3 | 4 |
+| WBS-10.1 | 6 | 2 | 4 | 5 |
+| WBS-11.1 | 4 | 1 | 3 | 3.5 |
+| WBS-12.1 | 6 | 2 | 4 | 5 |
+| WBS-12.2 | 5 | 1 | 4 | 4.5 |
+| WBS-12.3 | 5 | 1 | 4 | 4.5 |
+| WBS-12.4 | 4 | 1 | 3 | 3.5 |
+| WBS-12.5 | 4 | 1 | 3 | 3.5 |
+| WBS-12.6 | 4 | 1 | 3 | 3.5 |
+| Activities with no assumed saving | 43 | 0 | 43 | 43 |
+| **Preparation total** | **222** | **45** | **177** | **199.5** |
+
+Without any AI benefit, preparation effort rises to 222 hours; in the reduced-benefit scenario it rises to 199.5 hours. Both values remain within the combined uncommitted and reserve capacity (107 hours) in aggregate. However, a shortfall on a critical activity still delays the readiness date, so the effect on the schedule must be recomputed if the savings do not materialize.
+
+---
 
 ## 4. Resources
 
 ### 4.1 Team Structure and Member Roles
 
-| Member | Student ID | Role(s) | Responsibilities |
+| Member | Student ID | Role(s) | Main responsibilities |
 |---|---|---|---|
-| Ahmet Abalı | 150240052 | Project Manager; Frontend Developer | Schedule/risk control, Android UX and forms, report assembly, usability and presentation; abali24@itu.edu.tr. |
-| Can Sei Keçeci | 150240007 | Backend Developer; AI Engineer; Documenter | API/domain behavior, AI adapters/validation, backend tests, technical evidence and handover; kececi24@itu.edu.tr. |
-| Hamza Çevikbaş | 150240025 | Full Stack Developer; DevOps Engineer | CI, Firebase integration, offline/sync, deployments, performance/security checks and reproducible release; cevikbash24@itu.edu.tr. |
-| Selim Efe Aytemur | 150230070 | Product Owner; Frontend Developer; Database Engineer | Scope/acceptance decisions, PostgreSQL data semantics, catalogue/progress, social flows and demo; aytemur23@itu.edu.tr. |
+| Ahmet Abalı | 150240052 | Project Manager; Frontend Developer | Schedule and risk control; authentication, program, logging, calendar and AI review screens; requirement specification, design report and presentation. |
+| Can Sei Keçeci | 150240007 | Backend Developer; AI Engineer | Identity, program, workout and scheduling APIs; AI adapter and services; regression evidence and test report. |
+| Hamza Çevikbaş | 150240025 | Full-stack Developer; DevOps Engineer | Repository, CI and Compose; Firebase; offline queue and synchronization; reminders; security scanning and hardening; release packaging and user documentation. |
+| Selim Efe Aytemur | 150230070 | Product Owner; Frontend Developer; Database Engineer | Scope and acceptance decisions; data model and catalogue; goals; progress engine and dashboard; friends and sharing; requirement analysis and demonstration. |
 
-The customer, Res. Ass. Kemal Devrim Kafadar, reviews the pilot against agreed requirements. The Product Owner maintains acceptance priorities; the Project Manager maintains the baseline. Customer attendance and response time are external dependencies, not booked development capacity. Internal acceptance tests proceed if feedback is delayed, and unresolved feedback is recorded without claiming customer approval.
+The customer reviews the pilot against the agreed requirements. The customer's availability is an external dependency: internal acceptance testing proceeds if feedback is delayed, and any outstanding feedback is recorded.
 
 ### 4.2 Member-to-Activity Assignment
 
-FTE is based on a 40-hour full-time week and average activity duration. Only one planned primary package is active per person in each weekly window. The owner is accountable for completion and arranges the peer review described in Section 2.
+FTE is relative to a 40-hour week. Each member works on one mandatory activity at a time at 0.175 FTE; the order of each member's activities appears as resource predecessors in Section 5.1.
 
-| WBS ID | Assigned member | Responsibility | Average activity FTE |
+| WBS activity ID | Assigned member | Responsibility | Allocation to activity (FTE) |
 |---|---|---|---|
-| WBS-1.1 | Ahmet Abalı | UX and requirements baseline | 0.175 |
-| WBS-1.2 | Can Sei Keçeci | API and AI feasibility | 0.175 |
-| WBS-1.3 | Hamza Çevikbaş | Repository and CI foundation | 0.175 |
-| WBS-1.4 | Selim Efe Aytemur | Data and catalogue baseline | 0.175 |
-| WBS-2.1 | Ahmet Abalı | Authentication and onboarding UI | 0.175 |
-| WBS-2.2 | Can Sei Keçeci | Identity and profile APIs | 0.175 |
-| WBS-2.3 | Hamza Çevikbaş | Firebase and integration harness | 0.175 |
-| WBS-2.4 | Selim Efe Aytemur | Catalogue and program data access | 0.175 |
-| WBS-3.1 | Ahmet Abalı | Manual program and workout UI | 0.175 |
-| WBS-3.2 | Can Sei Keçeci | Workout and program APIs | 0.175 |
-| WBS-3.3 | Hamza Çevikbaş | Local drafts and queue | 0.175 |
-| WBS-3.4 | Selim Efe Aytemur | Goals and progress specification | 0.175 |
-| WBS-4.1 | Ahmet Abalı | Calendar and history UI | 0.175 |
-| WBS-4.2 | Can Sei Keçeci | Scheduling and sync APIs | 0.175 |
-| WBS-4.3 | Hamza Çevikbaş | Reminders and sync integration | 0.175 |
-| WBS-4.4 | Selim Efe Aytemur | Progress and motivation engine | 0.175 |
-| WBS-5.1 | Ahmet Abalı | AI review UI and analysis report | 0.175 |
-| WBS-5.2 | Can Sei Keçeci | AI logging and provider adapter | 0.175 |
-| WBS-5.3 | Hamza Çevikbaş | Core integration and failure tests | 0.175 |
-| WBS-5.4 | Selim Efe Aytemur | Friends and sharing foundation | 0.175 |
-| WBS-6.1 | Ahmet Abalı | AI planning and insights UI | 0.175 |
-| WBS-6.2 | Can Sei Keçeci | AI planning and insights service | 0.175 |
-| WBS-6.3 | Hamza Çevikbaş | Chat and moderation APIs | 0.175 |
-| WBS-6.4 | Selim Efe Aytemur | Social and joint-workout UI | 0.175 |
-| WBS-7.1 | Ahmet Abalı | Chat moderation UI and design report | 0.175 |
-| WBS-7.2 | Can Sei Keçeci | AI and authorization hardening | 0.175 |
-| WBS-7.3 | Hamza Çevikbaş | Deployment and recovery rehearsal | 0.175 |
-| WBS-7.4 | Selim Efe Aytemur | Whole-product integration | 0.175 |
-| WBS-8.1 | Ahmet Abalı | Usability and documentation validation | 0.175 |
-| WBS-8.2 | Can Sei Keçeci | Verification evidence and test report | 0.175 |
-| WBS-8.3 | Hamza Çevikbaş | Performance and release candidate | 0.175 |
-| WBS-8.4 | Selim Efe Aytemur | Acceptance and demo rehearsal | 0.175 |
-| WBS-9.1 | Ahmet Abalı | Presentation and final documentation | 0.175 |
-| WBS-9.2 | Can Sei Keçeci | Final evidence and handover | 0.175 |
-| WBS-9.3 | Hamza Çevikbaş | Code release and reproducibility | 0.245 |
-| WBS-9.4 | Selim Efe Aytemur | Demo execution and acceptance record | 0.204 |
+| WBS-1.1 | Ahmet Abalı | UX baseline and navigation shell | 0.175 |
+| WBS-1.2 | Ahmet Abalı | Authentication and onboarding UI | 0.175 |
+| WBS-1.3 | Can Sei Keçeci | Identity and profile APIs | 0.175 |
+| WBS-1.4 | Hamza Çevikbaş | Firebase and App Check configuration | 0.175 |
+| WBS-2.1 | Selim Efe Aytemur | Goal and preference management | 0.175 |
+| WBS-3.1 | Selim Efe Aytemur | Domain data model and catalogue seed | 0.175 |
+| WBS-3.2 | Selim Efe Aytemur | Catalogue and template APIs | 0.175 |
+| WBS-3.3 | Can Sei Keçeci | Program APIs with version snapshots | 0.175 |
+| WBS-3.4 | Ahmet Abalı | Program editor UI | 0.175 |
+| WBS-4.1 | Ahmet Abalı | Calendar UI | 0.175 |
+| WBS-4.2 | Can Sei Keçeci | Scheduling APIs | 0.175 |
+| WBS-4.3 | Hamza Çevikbaş | Reminder jobs and FCM delivery | 0.175 |
+| WBS-5.1 | Ahmet Abalı | Workout logging UI | 0.175 |
+| WBS-5.2 | Can Sei Keçeci | Workout record APIs | 0.175 |
+| WBS-6.1 | Hamza Çevikbaş | Local drafts and operation queue | 0.175 |
+| WBS-6.2 | Hamza Çevikbaş | Idempotent synchronization endpoints | 0.175 |
+| WBS-6.3 | Hamza Çevikbaş | Client synchronization and reconnection | 0.175 |
+| WBS-7.1 | Selim Efe Aytemur | Metric definitions and fixtures | 0.175 |
+| WBS-7.2 | Selim Efe Aytemur | Progress engine | 0.175 |
+| WBS-7.3 | Selim Efe Aytemur | History and progress dashboard UI | 0.175 |
+| WBS-8.1 | Can Sei Keçeci | AI provider feasibility and adapter skeleton | 0.175 |
+| WBS-8.2 | Can Sei Keçeci | Natural-language logging service | 0.175 |
+| WBS-8.3 | Ahmet Abalı | AI draft review UI | 0.175 |
+| WBS-8.4 | Can Sei Keçeci | Goal, program and insight service | 0.175 |
+| WBS-8.5 | Ahmet Abalı | Goal, program and insight UI | 0.175 |
+| WBS-9.1 | Selim Efe Aytemur | Friend and sharing APIs | 0.175 |
+| WBS-9.2 | Selim Efe Aytemur | Friend and sharing UI | 0.175 |
+| WBS-10.1 | Hamza Çevikbaş | Repository, CI and Compose foundation | 0.175 |
+| WBS-10.2 | Hamza Çevikbaş | Database backup and restore rehearsal | 0.175 |
+| WBS-10.3 | Hamza Çevikbaş | Release packaging and reproducibility | 0.175 |
+| WBS-10.4 | Hamza Çevikbaş | Restore and scan regression | 0.175 |
+| WBS-11.1 | Hamza Çevikbaş | Security scanning and authorization test harness | 0.175 |
+| WBS-11.2 | Hamza Çevikbaş | Core integration and failure tests | 0.175 |
+| WBS-11.3 | Hamza Çevikbaş | Security and AI hardening | 0.175 |
+| WBS-11.4 | Selim Efe Aytemur | Whole-product integration | 0.175 |
+| WBS-11.5 | Ahmet Abalı | Accessibility review and setup validation | 0.175 |
+| WBS-11.6 | Can Sei Keçeci | Regression evidence | 0.175 |
+| WBS-11.7 | Hamza Çevikbaş | Performance measurement and release candidate | 0.175 |
+| WBS-11.8 | Selim Efe Aytemur | Acceptance scenarios and demo rehearsal | 0.175 |
+| WBS-11.9 | Ahmet Abalı | Final defect fixes and regression | 0.175 |
+| WBS-11.10 | Can Sei Keçeci | Post-report test addendum | 0.175 |
+| WBS-12.1 | Ahmet Abalı | Requirement Specification Report | 0.175 |
+| WBS-12.2 | Selim Efe Aytemur | Requirement Analysis Report | 0.175 |
+| WBS-12.3 | Ahmet Abalı | Software Design Report | 0.175 |
+| WBS-12.4 | Can Sei Keçeci | Software Test Report | 0.175 |
+| WBS-12.5 | Hamza Çevikbaş | User/admin documentation and AI-use record | 0.175 |
+| WBS-12.6 | Ahmet Abalı | Presentation package | 0.175 |
+| WBS-12.7 | Selim Efe Aytemur | Demo preparation and acceptance record | 0.175 |
+| WBS-12.8 | All four members | Demonstration delivery | 1 h each (fixed date) |
+| WBS-12.9 | All four members | Presentation delivery | 1 h each (fixed date) |
+| WBS-13.1 | Selim Efe Aytemur | Badges and daily quotes (optional) | Assigned when selected |
+| WBS-14.1 | Hamza Çevikbaş | Group chat APIs (optional) | Assigned when selected |
+| WBS-14.2 | Ahmet Abalı | Group chat UI and integration (optional) | Assigned when selected |
+| WBS-15.1 | Can Sei Keçeci | Joint-workout APIs (optional) | Assigned when selected |
+| WBS-15.2 | Selim Efe Aytemur | Joint-workout UI and integration (optional) | Assigned when selected |
+| WBS-16.1 | Can Sei Keçeci | Global plan-sharing APIs (optional) | Assigned when selected |
+| WBS-16.2 | Ahmet Abalı | Global plan-sharing UI and integration (optional) | Assigned when selected |
+| WBS-17.1 | Hamza Çevikbaş | Helm chart and local Kubernetes smoke test (optional) | Assigned when selected |
+| WBS-17.2 | Hamza Çevikbaş | Kubernetes regression on release candidate (optional) | Assigned when selected |
 
-### 4.3 Resource and Communication Controls
+**Availability or allocation constraints:**  
+No member is full-time. Before each week, members report examination commitments and confirm their availability; any reduction triggers reassignment or a revised forecast. The protected hour per member per week is not scheduled. Work is integrated through pull requests that require passing CI and a review by the paired member. Scope, date or resource changes are recorded together with their rationale and the Product Owner's decision; changes affecting course obligations also require the agreement of the instructors.
 
-Maintain one shared backlog with task/WBS IDs, owner, estimate, actual hours, status, blockers and evidence links. Before each weekly window, members report exam commitments and confirm eight-hour availability; a reduction triggers reassignment or a new forecast. Do not assign work above confirmed availability. The Project Manager flags any task forecast above its remaining allowance or any blocked dependency lasting more than one day. Pairing transfers work ownership only when the receiving member’s capacity is checked.
-
-Use pull requests and mandatory passing CI for integration. A weekly checkpoint reviews accepted functionality, actual/remaining hours, risk triggers, the next milestone and budget usage. Scope/date/resource changes are recorded with reason, affected requirements, revised estimates and Product Owner decision; changes affecting course obligations require customer/instructor agreement. Feature deletion is not an automatic response to delay.
-
-Shared resources include the repository, development database, Firebase test project, configured model credentials, Android devices, a Compose host and a local Kubernetes test cluster. Record the actual host/device/provider configuration at the first technical gate. No paid cloud infrastructure or new hardware purchase is assumed without allocation. Synthetic training records are used in testing and demos.
+---
 
 ## 5. Schedule
 
 ### 5.1 PERT Chart — Activity Sequence
 
-The network uses deterministic activity-on-node durations with a forward/backward critical-path calculation. “PERT” identifies the dependency chart format; no probabilistic confidence level is claimed. Each standard activity lasts seven calendar days at part-time allocation. All links are finish-to-start. The same-owner links include resource-order constraints; additional links represent required cross-stream contracts or integrated results. A required input can be prototyped earlier, but dependent acceptance is not credited until the predecessor completes.
+The network uses activity-on-node notation with deterministic durations and finish-to-start dependencies. Two kinds of predecessor are distinguished: *technical* predecessors, where an activity needs another activity's output, and *resource* predecessors, where the same member must finish one activity before starting the next. Day 0 is Monday, 26 October 2026; ES, EF, LS and LF are elapsed calendar days, and EF is exclusive (an activity with EF = 7 finishes at the end of day 6). Float is calculated relative to the readiness finish on day 60.
 
-The complete predecessor table is authoritative. Diagrams split the same network into three readable segments. Nodes in one row are parallel work, not four full-time allocations.
+| Activity | Owner | Technical predecessors | Resource predecessor | Duration (days) | ES | EF | LS | LF | Total float |
+|---|---|---|---|---|---|---|---|---|---|
+| WBS-1.1 | Ahmet | Start | — | 3 | 0 | 3 | 6 | 9 | 6 |
+| **WBS-1.4** | Hamza | Start | — | 3 | 0 | 3 | 0 | 3 | **0** |
+| WBS-3.1 | Selim | Start | — | 5 | 0 | 5 | 2 | 7 | 2 |
+| WBS-8.1 | Can | Start | — | 3 | 0 | 3 | 4 | 7 | 4 |
+| **WBS-10.1** | Hamza | Start | WBS-1.4 | 4 | 3 | 7 | 3 | 7 | **0** |
+| WBS-12.1 | Ahmet | WBS-1.1 | WBS-1.1 | 4 | 3 | 7 | 9 | 13 | 6 |
+| **WBS-1.3** | Can | WBS-1.4, WBS-3.1, WBS-10.1 | WBS-8.1 | 5 | 7 | 12 | 7 | 12 | **0** |
+| **WBS-3.2** | Selim | WBS-3.1, WBS-10.1 | WBS-3.1 | 5 | 7 | 12 | 7 | 12 | **0** |
+| WBS-11.1 | Hamza | WBS-10.1, WBS-1.4 | WBS-10.1 | 3 | 7 | 10 | 14 | 17 | 7 |
+| WBS-10.2 | Hamza | WBS-3.1, WBS-10.1 | WBS-11.1 | 3 | 10 | 13 | 17 | 20 | 7 |
+| WBS-1.2 | Ahmet | WBS-1.1, WBS-1.3, WBS-1.4 | WBS-12.1 | 6 | 12 | 18 | 13 | 19 | 1 |
+| **WBS-3.3** | Can | WBS-3.2, WBS-1.3 | WBS-1.3 | 4 | 12 | 16 | 12 | 16 | **0** |
+| WBS-7.1 | Selim | WBS-3.1 | WBS-3.2 | 2 | 12 | 14 | 14 | 16 | 2 |
+| WBS-2.1 | Selim | WBS-1.3 | WBS-7.1 | 3 | 14 | 17 | 16 | 19 | 2 |
+| **WBS-5.2** | Can | WBS-3.3 | WBS-3.3 | 4 | 16 | 20 | 16 | 20 | **0** |
+| WBS-12.2 | Selim | WBS-7.1, WBS-2.1 | WBS-2.1 | 4 | 17 | 21 | 19 | 23 | 2 |
+| WBS-3.4 | Ahmet | WBS-3.3, WBS-1.2 | WBS-1.2 | 4 | 18 | 22 | 19 | 23 | 1 |
+| **WBS-4.2** | Can | WBS-3.3 | WBS-5.2 | 4 | 20 | 24 | 20 | 24 | **0** |
+| **WBS-6.2** | Hamza | WBS-5.2 | WBS-10.2 | 2 | 20 | 22 | 20 | 22 | **0** |
+| WBS-7.2 | Selim | WBS-5.2, WBS-7.1 | WBS-12.2 | 6 | 21 | 27 | 23 | 29 | 2 |
+| WBS-5.1 | Ahmet | WBS-5.2, WBS-3.4 | WBS-3.4 | 4 | 22 | 26 | 23 | 27 | 1 |
+| **WBS-6.1** | Hamza | WBS-5.2, WBS-1.4 | WBS-6.2 | 6 | 22 | 28 | 22 | 28 | **0** |
+| **WBS-8.2** | Can | WBS-8.1, WBS-5.2 | WBS-4.2 | 7 | 24 | 31 | 24 | 31 | **0** |
+| WBS-4.1 | Ahmet | WBS-4.2 | WBS-5.1 | 4 | 26 | 30 | 27 | 31 | 1 |
+| WBS-9.1 | Selim | WBS-1.3, WBS-5.2 | WBS-7.2 | 6 | 27 | 33 | 29 | 35 | 2 |
+| **WBS-4.3** | Hamza | WBS-4.2, WBS-1.4 | WBS-6.1 | 4 | 28 | 32 | 28 | 32 | **0** |
+| **WBS-8.3** | Ahmet | WBS-8.2, WBS-5.1 | WBS-4.1 | 4 | 31 | 35 | 31 | 35 | **0** |
+| WBS-8.4 | Can | WBS-8.2, WBS-7.2 | WBS-8.2 | 6 | 31 | 37 | 33 | 39 | 2 |
+| **WBS-6.3** | Hamza | WBS-6.1, WBS-6.2, WBS-5.1 | WBS-4.3 | 3 | 32 | 35 | 32 | 35 | **0** |
+| WBS-9.2 | Selim | WBS-9.1 | WBS-9.1 | 3 | 33 | 36 | 37 | 40 | 4 |
+| WBS-11.2 | Hamza | WBS-6.3, WBS-4.3 | WBS-6.3 | 3 | 35 | 38 | 38 | 41 | 3 |
+| **WBS-12.3** | Ahmet | WBS-8.2, WBS-9.1, WBS-6.3 | WBS-8.3 | 4 | 35 | 39 | 35 | 39 | **0** |
+| WBS-7.3 | Selim | WBS-7.2, WBS-5.1 | WBS-9.2 | 3 | 36 | 39 | 40 | 43 | 4 |
+| WBS-10.4 | Hamza | WBS-10.2, WBS-6.3 | WBS-11.2 | 2 | 38 | 40 | 41 | 43 | 3 |
+| **WBS-8.5** | Ahmet | WBS-8.4, WBS-8.3 | WBS-12.3 | 4 | 39 | 43 | 39 | 43 | **0** |
+| WBS-11.3 | Hamza | WBS-8.4, WBS-9.1, WBS-11.1 | WBS-10.4 | 4 | 40 | 44 | 43 | 47 | 3 |
+| **WBS-11.4** | Selim | WBS-7.3, WBS-9.2, WBS-8.5, WBS-4.1, WBS-11.2 | WBS-7.3 | 4 | 43 | 47 | 43 | 47 | **0** |
+| WBS-11.5 | Ahmet | WBS-11.4 | WBS-8.5 | 2 | 47 | 49 | 49 | 51 | 2 |
+| **WBS-11.6** | Can | WBS-11.4, WBS-11.3 | WBS-8.4 | 4 | 47 | 51 | 47 | 51 | **0** |
+| WBS-11.7 | Hamza | WBS-11.4, WBS-10.4 | WBS-11.3 | 3 | 47 | 50 | 48 | 51 | 1 |
+| WBS-11.8 | Selim | WBS-11.4 | WBS-11.4 | 3 | 47 | 50 | 48 | 51 | 1 |
+| WBS-11.9 | Ahmet | WBS-11.5 | WBS-11.5 | 2 | 49 | 51 | 52 | 54 | 3 |
+| WBS-12.5 | Hamza | WBS-11.7, WBS-11.8 | WBS-11.7 | 3 | 50 | 53 | 53 | 56 | 3 |
+| **WBS-12.4** | Can | WBS-11.5, WBS-11.6, WBS-11.7, WBS-11.8 | WBS-11.6 | 3 | 51 | 54 | 51 | 54 | **0** |
+| **WBS-11.10** | Can | WBS-12.4, WBS-11.9 | WBS-12.4 | 2 | 54 | 56 | 54 | 56 | **0** |
+| WBS-12.6 | Ahmet | WBS-12.4, WBS-12.5, WBS-11.9 | WBS-11.9 | 3 | 54 | 57 | 57 | 60 | 3 |
+| **WBS-10.3** | Hamza | WBS-11.10, WBS-12.5 | WBS-12.5 | 2 | 56 | 58 | 56 | 58 | **0** |
+| **WBS-12.7** | Selim | WBS-10.3 | WBS-11.8 | 2 | 58 | 60 | 58 | 60 | **0** |
 
-| Activity | Predecessors | Duration (days) | ES | EF | LS | LF | Total float (days) |
-|---|---|---|---|---|---|---|---|
-| WBS-1.1 | Start | 7 | 0 | 7 | 0 | 7 | 0 |
-| WBS-1.2 | Start | 7 | 0 | 7 | 0 | 7 | 0 |
-| WBS-1.3 | Start | 7 | 0 | 7 | 0 | 7 | 0 |
-| WBS-1.4 | Start | 7 | 0 | 7 | 0 | 7 | 0 |
-| WBS-2.1 | WBS-1.1, WBS-1.4 | 7 | 7 | 14 | 7 | 14 | 0 |
-| WBS-2.2 | WBS-1.2, WBS-1.3, WBS-1.4 | 7 | 7 | 14 | 7 | 14 | 0 |
-| WBS-2.3 | WBS-1.3, WBS-1.2 | 7 | 7 | 14 | 7 | 14 | 0 |
-| WBS-2.4 | WBS-1.4, WBS-1.2 | 7 | 7 | 14 | 7 | 14 | 0 |
-| WBS-3.1 | WBS-2.1, WBS-2.4 | 7 | 14 | 21 | 14 | 21 | 0 |
-| WBS-3.2 | WBS-2.2, WBS-2.4 | 7 | 14 | 21 | 14 | 21 | 0 |
-| WBS-3.3 | WBS-2.3, WBS-2.2 | 7 | 14 | 21 | 14 | 21 | 0 |
-| WBS-3.4 | WBS-2.4, WBS-2.2 | 7 | 14 | 21 | 14 | 21 | 0 |
-| WBS-4.1 | WBS-3.1, WBS-3.2 | 7 | 21 | 28 | 21 | 28 | 0 |
-| WBS-4.2 | WBS-3.2, WBS-3.3 | 7 | 21 | 28 | 21 | 28 | 0 |
-| WBS-4.3 | WBS-3.3, WBS-3.2 | 7 | 21 | 28 | 21 | 28 | 0 |
-| WBS-4.4 | WBS-3.4, WBS-3.2 | 7 | 21 | 28 | 21 | 28 | 0 |
-| WBS-5.1 | WBS-4.1, WBS-4.2 | 7 | 28 | 35 | 28 | 35 | 0 |
-| WBS-5.2 | WBS-4.2 | 7 | 28 | 35 | 28 | 35 | 0 |
-| WBS-5.3 | WBS-4.3, WBS-4.2 | 7 | 28 | 35 | 28 | 35 | 0 |
-| WBS-5.4 | WBS-4.4, WBS-4.2 | 7 | 28 | 35 | 28 | 35 | 0 |
-| WBS-6.1 | WBS-5.1, WBS-5.2 | 7 | 35 | 42 | 35 | 42 | 0 |
-| WBS-6.2 | WBS-5.2, WBS-5.1 | 7 | 35 | 42 | 35 | 42 | 0 |
-| WBS-6.3 | WBS-5.3, WBS-5.4 | 7 | 35 | 42 | 35 | 42 | 0 |
-| WBS-6.4 | WBS-5.4, WBS-5.3 | 7 | 35 | 42 | 35 | 42 | 0 |
-| WBS-7.1 | WBS-6.1, WBS-6.3 | 7 | 42 | 49 | 42 | 49 | 0 |
-| WBS-7.2 | WBS-6.2, WBS-6.3 | 7 | 42 | 49 | 42 | 49 | 0 |
-| WBS-7.3 | WBS-6.3, WBS-6.2 | 7 | 42 | 49 | 42 | 49 | 0 |
-| WBS-7.4 | WBS-6.4, WBS-6.1, WBS-6.3 | 7 | 42 | 49 | 42 | 49 | 0 |
-| WBS-8.1 | WBS-7.1, WBS-7.4 | 7 | 49 | 56 | 49 | 56 | 0 |
-| WBS-8.2 | WBS-7.2, WBS-7.4 | 7 | 49 | 56 | 49 | 56 | 0 |
-| WBS-8.3 | WBS-7.3, WBS-7.2 | 7 | 49 | 56 | 49 | 56 | 0 |
-| WBS-8.4 | WBS-7.4, WBS-7.1, WBS-7.2, WBS-7.3 | 7 | 49 | 56 | 49 | 56 | 0 |
-| WBS-9.1 | WBS-8.1, WBS-8.4 | 7 | 56 | 63 | 56 | 63 | 0 |
-| WBS-9.2 | WBS-8.2, WBS-8.1, WBS-8.3, WBS-8.4 | 7 | 56 | 63 | 56 | 63 | 0 |
-| WBS-9.3 | WBS-8.3, WBS-8.1, WBS-8.2, WBS-8.4 | 5 | 56 | 61 | 58 | 63 | 2 |
-| WBS-9.4 | WBS-8.4, WBS-8.1, WBS-8.2, WBS-8.3 | 6 | 56 | 62 | 57 | 63 | 1 |
-
-**Network segment: weeks 1–3.** Cross-segment predecessor links are listed in the table above. Red nodes have zero total float.
-
-```mermaid
-flowchart TD
-    WBS1_1["WBS-1.1: UX and requirements baseline (7d)"]
-    WBS1_2["WBS-1.2: API and AI feasibility (7d)"]
-    WBS1_3["WBS-1.3: Repository and CI foundation (7d)"]
-    WBS1_4["WBS-1.4: Data and catalogue baseline (7d)"]
-    WBS2_1["WBS-2.1: Authentication and onboarding UI (7d)"]
-    WBS2_2["WBS-2.2: Identity and profile APIs (7d)"]
-    WBS2_3["WBS-2.3: Firebase and integration harness (7d)"]
-    WBS2_4["WBS-2.4: Catalogue and program data access (7d)"]
-    WBS3_1["WBS-3.1: Manual program and workout UI (7d)"]
-    WBS3_2["WBS-3.2: Workout and program APIs (7d)"]
-    WBS3_3["WBS-3.3: Local drafts and queue (7d)"]
-    WBS3_4["WBS-3.4: Goals and progress specification (7d)"]
-    WBS1_1 --> WBS2_1
-    WBS1_4 --> WBS2_1
-    WBS1_2 --> WBS2_2
-    WBS1_3 --> WBS2_2
-    WBS1_4 --> WBS2_2
-    WBS1_3 --> WBS2_3
-    WBS1_2 --> WBS2_3
-    WBS1_4 --> WBS2_4
-    WBS1_2 --> WBS2_4
-    WBS2_1 --> WBS3_1
-    WBS2_4 --> WBS3_1
-    WBS2_2 --> WBS3_2
-    WBS2_4 --> WBS3_2
-    WBS2_3 --> WBS3_3
-    WBS2_2 --> WBS3_3
-    WBS2_4 --> WBS3_4
-    WBS2_2 --> WBS3_4
-    classDef critical fill:#ffe1e1,stroke:#b33,stroke-width:2px;
-    class WBS1_1,WBS1_2,WBS1_3,WBS1_4,WBS2_1,WBS2_2,WBS2_3,WBS2_4,WBS3_1,WBS3_2,WBS3_3,WBS3_4 critical;
-```
-
-**Network segment: weeks 4–6.** Cross-segment predecessor links are listed in the table above. Red nodes have zero total float.
+In the chart below, solid arrows are technical dependencies and dashed arrows are resource-only dependencies. Critical activities (zero total float) are shaded red.
 
 ```mermaid
 flowchart TD
-    WBS4_1["WBS-4.1: Calendar and history UI (7d)"]
-    WBS4_2["WBS-4.2: Scheduling and sync APIs (7d)"]
-    WBS4_3["WBS-4.3: Reminders and sync integration (7d)"]
-    WBS4_4["WBS-4.4: Progress and motivation engine (7d)"]
-    WBS5_1["WBS-5.1: AI review UI and analysis report (7d)"]
-    WBS5_2["WBS-5.2: AI logging and provider adapter (7d)"]
-    WBS5_3["WBS-5.3: Core integration and failure tests (7d)"]
-    WBS5_4["WBS-5.4: Friends and sharing foundation (7d)"]
-    WBS6_1["WBS-6.1: AI planning and insights UI (7d)"]
-    WBS6_2["WBS-6.2: AI planning and insights service (7d)"]
-    WBS6_3["WBS-6.3: Chat and moderation APIs (7d)"]
-    WBS6_4["WBS-6.4: Social and joint-workout UI (7d)"]
-    WBS4_1 --> WBS5_1
-    WBS4_2 --> WBS5_1
-    WBS4_2 --> WBS5_2
-    WBS4_3 --> WBS5_3
-    WBS4_2 --> WBS5_3
-    WBS4_4 --> WBS5_4
-    WBS4_2 --> WBS5_4
-    WBS5_1 --> WBS6_1
-    WBS5_2 --> WBS6_1
-    WBS5_2 --> WBS6_2
-    WBS5_1 --> WBS6_2
-    WBS5_3 --> WBS6_3
-    WBS5_4 --> WBS6_3
-    WBS5_4 --> WBS6_4
-    WBS5_3 --> WBS6_4
-    classDef critical fill:#ffe1e1,stroke:#b33,stroke-width:2px;
-    class WBS4_1,WBS4_2,WBS4_3,WBS4_4,WBS5_1,WBS5_2,WBS5_3,WBS5_4,WBS6_1,WBS6_2,WBS6_3,WBS6_4 critical;
+    START((Start))
+    FINISH((Finish))
+    n1_1["WBS-1.1<br/>UX baseline and navigation shell<br/>3 d"]
+    n1_4["WBS-1.4<br/>Firebase and App Check configuration<br/>3 d"]
+    n3_1["WBS-3.1<br/>Domain data model and catalogue seed<br/>5 d"]
+    n8_1["WBS-8.1<br/>AI provider feasibility and adapter skeleton<br/>3 d"]
+    n10_1["WBS-10.1<br/>Repository, CI and Compose foundation<br/>4 d"]
+    n12_1["WBS-12.1<br/>Requirement Specification Report<br/>4 d"]
+    n1_3["WBS-1.3<br/>Identity and profile APIs<br/>5 d"]
+    n3_2["WBS-3.2<br/>Catalogue and template APIs<br/>5 d"]
+    n11_1["WBS-11.1<br/>Security scanning and authorization test harness<br/>3 d"]
+    n10_2["WBS-10.2<br/>Database backup and restore rehearsal<br/>3 d"]
+    n1_2["WBS-1.2<br/>Authentication and onboarding UI<br/>6 d"]
+    n3_3["WBS-3.3<br/>Program APIs with version snapshots<br/>4 d"]
+    n7_1["WBS-7.1<br/>Metric definitions and fixtures<br/>2 d"]
+    n2_1["WBS-2.1<br/>Goal and preference management<br/>3 d"]
+    n5_2["WBS-5.2<br/>Workout record APIs<br/>4 d"]
+    n12_2["WBS-12.2<br/>Requirement Analysis Report<br/>4 d"]
+    n3_4["WBS-3.4<br/>Program editor UI<br/>4 d"]
+    n4_2["WBS-4.2<br/>Scheduling APIs<br/>4 d"]
+    n6_2["WBS-6.2<br/>Idempotent synchronization endpoints<br/>2 d"]
+    n7_2["WBS-7.2<br/>Progress engine<br/>6 d"]
+    n5_1["WBS-5.1<br/>Workout logging UI<br/>4 d"]
+    n6_1["WBS-6.1<br/>Local drafts and operation queue<br/>6 d"]
+    n8_2["WBS-8.2<br/>Natural-language logging service<br/>7 d"]
+    n4_1["WBS-4.1<br/>Calendar UI<br/>4 d"]
+    n9_1["WBS-9.1<br/>Friend and sharing APIs<br/>6 d"]
+    n4_3["WBS-4.3<br/>Reminder jobs and FCM delivery<br/>4 d"]
+    n8_3["WBS-8.3<br/>AI draft review UI<br/>4 d"]
+    n8_4["WBS-8.4<br/>Goal, program and insight service<br/>6 d"]
+    n6_3["WBS-6.3<br/>Client synchronization and reconnection<br/>3 d"]
+    n9_2["WBS-9.2<br/>Friend and sharing UI<br/>3 d"]
+    n11_2["WBS-11.2<br/>Core integration and failure tests<br/>3 d"]
+    n12_3["WBS-12.3<br/>Software Design Report<br/>4 d"]
+    n7_3["WBS-7.3<br/>History and progress dashboard UI<br/>3 d"]
+    n10_4["WBS-10.4<br/>Restore and scan regression<br/>2 d"]
+    n8_5["WBS-8.5<br/>Goal, program and insight UI<br/>4 d"]
+    n11_3["WBS-11.3<br/>Security and AI hardening<br/>4 d"]
+    n11_4["WBS-11.4<br/>Whole-product integration<br/>4 d"]
+    n11_5["WBS-11.5<br/>Accessibility review and setup validation<br/>2 d"]
+    n11_6["WBS-11.6<br/>Regression evidence<br/>4 d"]
+    n11_7["WBS-11.7<br/>Performance measurement and release candidate<br/>3 d"]
+    n11_8["WBS-11.8<br/>Acceptance scenarios and demo rehearsal<br/>3 d"]
+    n11_9["WBS-11.9<br/>Final defect fixes and regression<br/>2 d"]
+    n12_5["WBS-12.5<br/>User/admin documentation and AI-use record<br/>3 d"]
+    n12_4["WBS-12.4<br/>Software Test Report<br/>3 d"]
+    n11_10["WBS-11.10<br/>Post-report test addendum<br/>2 d"]
+    n12_6["WBS-12.6<br/>Presentation package<br/>3 d"]
+    n10_3["WBS-10.3<br/>Release packaging and reproducibility<br/>2 d"]
+    n12_7["WBS-12.7<br/>Demo preparation and acceptance record<br/>2 d"]
+    START --> n1_1
+    START --> n1_4
+    START --> n3_1
+    START --> n8_1
+    n1_4 -.-> n10_1
+    n1_1 --> n12_1
+    n1_4 --> n1_3
+    n3_1 --> n1_3
+    n10_1 --> n1_3
+    n8_1 -.-> n1_3
+    n3_1 --> n3_2
+    n10_1 --> n3_2
+    n10_1 --> n11_1
+    n1_4 --> n11_1
+    n3_1 --> n10_2
+    n10_1 --> n10_2
+    n11_1 -.-> n10_2
+    n1_1 --> n1_2
+    n1_3 --> n1_2
+    n1_4 --> n1_2
+    n12_1 -.-> n1_2
+    n3_2 --> n3_3
+    n1_3 --> n3_3
+    n3_1 --> n7_1
+    n3_2 -.-> n7_1
+    n1_3 --> n2_1
+    n7_1 -.-> n2_1
+    n3_3 --> n5_2
+    n7_1 --> n12_2
+    n2_1 --> n12_2
+    n3_3 --> n3_4
+    n1_2 --> n3_4
+    n3_3 --> n4_2
+    n5_2 -.-> n4_2
+    n5_2 --> n6_2
+    n10_2 -.-> n6_2
+    n5_2 --> n7_2
+    n7_1 --> n7_2
+    n12_2 -.-> n7_2
+    n5_2 --> n5_1
+    n3_4 --> n5_1
+    n5_2 --> n6_1
+    n1_4 --> n6_1
+    n6_2 -.-> n6_1
+    n8_1 --> n8_2
+    n5_2 --> n8_2
+    n4_2 -.-> n8_2
+    n4_2 --> n4_1
+    n5_1 -.-> n4_1
+    n1_3 --> n9_1
+    n5_2 --> n9_1
+    n7_2 -.-> n9_1
+    n4_2 --> n4_3
+    n1_4 --> n4_3
+    n6_1 -.-> n4_3
+    n8_2 --> n8_3
+    n5_1 --> n8_3
+    n4_1 -.-> n8_3
+    n8_2 --> n8_4
+    n7_2 --> n8_4
+    n6_1 --> n6_3
+    n6_2 --> n6_3
+    n5_1 --> n6_3
+    n4_3 -.-> n6_3
+    n9_1 --> n9_2
+    n6_3 --> n11_2
+    n4_3 --> n11_2
+    n8_2 --> n12_3
+    n9_1 --> n12_3
+    n6_3 --> n12_3
+    n8_3 -.-> n12_3
+    n7_2 --> n7_3
+    n5_1 --> n7_3
+    n9_2 -.-> n7_3
+    n10_2 --> n10_4
+    n6_3 --> n10_4
+    n11_2 -.-> n10_4
+    n8_4 --> n8_5
+    n8_3 --> n8_5
+    n12_3 -.-> n8_5
+    n8_4 --> n11_3
+    n9_1 --> n11_3
+    n11_1 --> n11_3
+    n10_4 -.-> n11_3
+    n7_3 --> n11_4
+    n9_2 --> n11_4
+    n8_5 --> n11_4
+    n4_1 --> n11_4
+    n11_2 --> n11_4
+    n11_4 --> n11_5
+    n8_5 -.-> n11_5
+    n11_4 --> n11_6
+    n11_3 --> n11_6
+    n8_4 -.-> n11_6
+    n11_4 --> n11_7
+    n10_4 --> n11_7
+    n11_3 -.-> n11_7
+    n11_4 --> n11_8
+    n11_5 --> n11_9
+    n11_7 --> n12_5
+    n11_8 --> n12_5
+    n11_5 --> n12_4
+    n11_6 --> n12_4
+    n11_7 --> n12_4
+    n11_8 --> n12_4
+    n12_4 --> n11_10
+    n11_9 --> n11_10
+    n12_4 --> n12_6
+    n12_5 --> n12_6
+    n11_9 --> n12_6
+    n11_10 --> n10_3
+    n12_5 --> n10_3
+    n10_3 --> n12_7
+    n11_8 -.-> n12_7
+    n12_6 --> FINISH
+    n12_7 --> FINISH
+    classDef critical fill:#ffe1e1,stroke:#d33,stroke-width:3px;
+    class n1_3,n1_4,n3_2,n3_3,n4_2,n4_3,n5_2,n6_1,n6_2,n6_3,n8_2,n8_3,n8_5,n10_1,n10_3,n11_4,n11_6,n11_10,n12_3,n12_4,n12_7 critical;
 ```
 
-**Network segment: weeks 7–9.** Cross-segment predecessor links are listed in the table above. Red nodes have zero total float.
-
-```mermaid
-flowchart TD
-    WBS7_1["WBS-7.1: Chat moderation UI and design report (7d)"]
-    WBS7_2["WBS-7.2: AI and authorization hardening (7d)"]
-    WBS7_3["WBS-7.3: Deployment and recovery rehearsal (7d)"]
-    WBS7_4["WBS-7.4: Whole-product integration (7d)"]
-    WBS8_1["WBS-8.1: Usability and documentation validation (7d)"]
-    WBS8_2["WBS-8.2: Verification evidence and test report (7d)"]
-    WBS8_3["WBS-8.3: Performance and release candidate (7d)"]
-    WBS8_4["WBS-8.4: Acceptance and demo rehearsal (7d)"]
-    WBS9_1["WBS-9.1: Presentation and final documentation (7d)"]
-    WBS9_2["WBS-9.2: Final evidence and handover (7d)"]
-    WBS9_3["WBS-9.3: Code release and reproducibility (5d)"]
-    WBS9_4["WBS-9.4: Demo execution and acceptance record (6d)"]
-    WBS7_1 --> WBS8_1
-    WBS7_4 --> WBS8_1
-    WBS7_2 --> WBS8_2
-    WBS7_4 --> WBS8_2
-    WBS7_3 --> WBS8_3
-    WBS7_2 --> WBS8_3
-    WBS7_4 --> WBS8_4
-    WBS7_1 --> WBS8_4
-    WBS7_2 --> WBS8_4
-    WBS7_3 --> WBS8_4
-    WBS8_1 --> WBS9_1
-    WBS8_4 --> WBS9_1
-    WBS8_2 --> WBS9_2
-    WBS8_1 --> WBS9_2
-    WBS8_3 --> WBS9_2
-    WBS8_4 --> WBS9_2
-    WBS8_3 --> WBS9_3
-    WBS8_1 --> WBS9_3
-    WBS8_2 --> WBS9_3
-    WBS8_4 --> WBS9_3
-    WBS8_4 --> WBS9_4
-    WBS8_1 --> WBS9_4
-    WBS8_2 --> WBS9_4
-    WBS8_3 --> WBS9_4
-    classDef critical fill:#ffe1e1,stroke:#b33,stroke-width:2px;
-    class WBS7_1,WBS7_2,WBS7_3,WBS7_4,WBS8_1,WBS8_2,WBS8_3,WBS8_4,WBS9_1,WBS9_2 critical;
-```
+**PERT notes (activity durations and dependencies):**  
+Four activities start on day 0: the UX baseline, Firebase configuration, the data model and the AI feasibility check. Thereafter the network follows the dependency order of the product: identity, catalogue and program APIs precede workout records, which in turn precede synchronization, scheduling, AI logging, progress and sharing. Client activities follow the APIs they consume. Verification (T-11) begins once whole-product integration is complete, and report activities depend on the work they describe. Each duration equals the activity's estimated hours (Section 3.1). The Requirement Analysis Report (WBS-12.2) depends on the metric definitions in WBS-7.1, so the metric semantics are agreed before the progress engine is implemented. The Software Design Report (WBS-12.3) consolidates design decisions recorded during implementation; development does not wait for the report.
 
 ### 5.2 Critical Path and Total Project Duration
 
-Day 0 is 26 October 2026 at 00:00; day 63 is 28 December 2026 at 00:00. The baseline network occupies **63 calendar days, or nine elapsed weeks**. Final submission is due at 23:59 on 28 December. This final submission day is not counted as another development week.
+The forward and backward passes yield a readiness finish of day 60. The zero-float activities do not form a single chain: the network has a shared start, two parallel critical branches in the middle of the project, and a shared final segment. The critical path is therefore presented in three segments.
 
-One critical path is:
+**Segment 1 — Foundation (shared):** `WBS-1.4 → WBS-10.1 → WBS-1.3 ∥ WBS-3.2 → WBS-3.3 → WBS-5.2`  
+WBS-1.3 and WBS-3.2 run in parallel (owners Can and Selim), are both five days long and both feed WBS-3.3, so either one delays the project if it slips.
 
-`WBS-1.1 → WBS-2.1 → WBS-3.1 → WBS-4.1 → WBS-5.1 → WBS-6.1 → WBS-7.1 → WBS-8.1 → WBS-9.1`
+**Segment 2a — AI branch:** `WBS-4.2 → WBS-8.2 → WBS-8.3`  
+Days 20–35; owners Can and Ahmet.
 
-Every activity on this path lasts seven days; the sum is 63 days. There are multiple parallel critical paths because the initial weekly envelopes and resource chains are deliberately balanced. WBS-1.1 through WBS-8.4 and WBS-9.1/WBS-9.2 have zero total project float. This is a property of the planning model, not evidence that every underlying subtask will take precisely the same time. Actual durations must be updated when measured.
+**Segment 2b — Offline synchronization branch:** `WBS-6.2 → WBS-6.1 → WBS-4.3 → WBS-6.3`  
+Days 20–35; owner Hamza. Both branches are 15 days long and both feed WBS-12.3, so the two branches are equally critical.
 
-WBS-9.3 has two days of float relative to the project finish, and WBS-9.4 has one day. **Neither has usable float against its own submission milestone:** the code must still be ready on 25 December and the demo on 26 December. Their earlier deadlines override end-of-project float. Earlier report deadlines likewise constrain their associated work packages even when the wider network permits a later finish.
+**Segment 3 — Integration, verification and release (shared):** `WBS-12.3 → WBS-8.5 → WBS-11.4 → WBS-11.6 → WBS-12.4 → WBS-11.10 → WBS-10.3 → WBS-12.7`  
+Days 35–60.
 
-| Critical-path activity | Duration (weeks) | Reason |
-|---|---|---|
-| WBS-1.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-2.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-3.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-4.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-5.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-6.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-7.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-8.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
-| WBS-9.1 | 1 | Predecessor handoff and/or same-owner resource chain; zero total float. |
+| Critical-path activity ID | Segment | Duration (days) | Duration (weeks) | Reason it is critical |
+|---|---|---|---|---|
+| WBS-1.4 | 1 | 3 | 0.43 | Firebase configuration is required for token verification (WBS-1.3) and precedes Hamza's repository setup. |
+| WBS-10.1 | 1 | 4 | 0.57 | The repository, CI and database environment are required by all backend work. |
+| WBS-1.3 | 1 | 5 | 0.71 | Token verification and ownership middleware are required by every subsequent API. |
+| WBS-3.2 | 1 | 5 | 0.71 | The catalogue APIs are required by the program APIs. |
+| WBS-3.3 | 1 | 4 | 0.57 | Program versions are referenced by workout records. |
+| WBS-5.2 | 1 | 4 | 0.57 | Workout records are required by synchronization, scheduling, AI logging, progress and sharing. |
+| WBS-4.2 | 2a | 4 | 0.57 | Can must complete scheduling before AI logging (resource order); reminders also depend on it. |
+| WBS-6.2 | 2b | 2 | 0.29 | Idempotent endpoints are required by client synchronization. |
+| WBS-6.1 | 2b | 6 | 0.86 | The local queue is required by client synchronization. |
+| WBS-8.2 | 2a | 7 | 1.00 | The AI logging service is required by the review UI and by the goal/program/insight service. |
+| WBS-4.3 | 2b | 4 | 0.57 | Hamza must deliver reminders before the client synchronization work (resource order). |
+| WBS-8.3 | 2a | 4 | 0.57 | Ahmet must finish the review UI before the design report (resource order). |
+| WBS-6.3 | 2b | 3 | 0.43 | Synchronization behaviour must be settled before the design report and integration testing. |
+| WBS-12.3 | 3 | 4 | 0.57 | The design report must be submitted by 7 December and precedes Ahmet's AI planning UI. |
+| WBS-8.5 | 3 | 4 | 0.57 | The AI planning UI is the last feature before whole-product integration. |
+| WBS-11.4 | 3 | 4 | 0.57 | Integration gates all final verification activities. |
+| WBS-11.6 | 3 | 4 | 0.57 | Regression evidence is a required input to the test report. |
+| WBS-12.4 | 3 | 3 | 0.43 | The test report is due on 21 December and precedes the addendum. |
+| WBS-11.10 | 3 | 2 | 0.29 | The addendum verifies the final fixes that are included in the release tag. |
+| WBS-10.3 | 3 | 2 | 0.29 | The tagged release must exist before demo preparation. |
+| WBS-12.7 | 3 | 2 | 0.29 | Demonstration preparation is the last readiness activity. |
+| **Critical path length** | — | **60** | **8.57** | — |
 
-**Forward pass**: ES is the maximum predecessor EF; EF = ES + duration.
-**Backward pass**: LF is the minimum successor LS, or day 63 for a terminal node; LS = LF − duration. Total float = LS − ES. 
-The calculation includes the stated resource-order edges, not an unconstrained "unlimited staff" schedule. (ES: Early Start, EF: Early Finish, LS: Late Start, LF: Late Finish)
+**Total project schedule:** **9 weeks**, from **2026-10-26** to **2026-12-28**. Preparation work is complete at the end of 2026-12-24 (day 60); the remaining days contain the fixed demonstration (26 December) and presentation (28 December).
+
+**Critical-path explanation:**  
+The critical path was identified by a forward pass (ES = latest EF of all predecessors; EF = ES + duration) and a backward pass (LF = earliest LS of all successors, or the readiness finish for terminal activities; LS = LF − duration) over both technical and resource dependencies. Resource dependencies are included because a member cannot carry out two activities simultaneously at the planned allocation. Activities with zero total float form the critical path, and its length of 60 days determines the readiness date. Because the AI and offline-synchronization branches are equally long, both must be monitored; shortening only one of them would not move the readiness date.
+
+Course deadlines are verified separately from overall float. The margin is the number of days between the forecast completion date and the deadline.
+
+| Package | Forecast completion (end of day) | Deadline (23:59) | Margin (days) |
+|---|---|---|---|
+| WBS-12.1 Requirement Specification Report | 2026-11-01 | 2026-11-02 | 1 |
+| WBS-12.2 Requirement Analysis Report | 2026-11-15 | 2026-11-23 | 8 |
+| WBS-12.3 Software Design Report | 2026-12-03 | 2026-12-07 | 4 |
+| WBS-12.4 Software Test Report | 2026-12-18 | 2026-12-21 | 3 |
+| WBS-10.3 Release packaging and reproducibility | 2026-12-22 | 2026-12-25 | 3 |
+| WBS-12.7 Demo preparation and acceptance record | 2026-12-24 | 2026-12-26 | 2 |
+| WBS-12.6 Presentation package | 2026-12-21 | 2026-12-28 | 7 |
 
 ### 5.3 Gantt Chart — Project Timeline
 
-Dates below are local calendar dates. Mermaid activity end dates are exclusive: an activity ending at 2026-11-02 completes by the end of 1 November. The specification content is completed in week 1 and submitted on the first day of week 2, before its 2 November 23:59 deadline. Final code/demo tasks finish by the end of their respective dates.
+Bar end dates are exclusive. Critical activities carry the `crit` marker; submissions and events are milestones.
 
 ```mermaid
 gantt
-    title GymTracker — Android Pilot Baseline
+    title GymTracker — Mandatory Baseline Schedule
     dateFormat YYYY-MM-DD
     axisFormat %d %b
     section Ahmet Abalı
-    WBS-1.1 UX and requirements baseline :crit, WBS1_1, 2026-10-26, 7d
-    WBS-2.1 Authentication and onboarding UI :crit, WBS2_1, 2026-11-02, 7d
-    WBS-3.1 Manual program and workout UI :crit, WBS3_1, 2026-11-09, 7d
-    WBS-4.1 Calendar and history UI :crit, WBS4_1, 2026-11-16, 7d
-    WBS-5.1 AI review UI and analysis report :crit, WBS5_1, 2026-11-23, 7d
-    WBS-6.1 AI planning and insights UI :crit, WBS6_1, 2026-11-30, 7d
-    WBS-7.1 Chat moderation UI and design report :crit, WBS7_1, 2026-12-07, 7d
-    WBS-8.1 Usability and documentation validation :crit, WBS8_1, 2026-12-14, 7d
-    WBS-9.1 Presentation and final documentation :crit, WBS9_1, 2026-12-21, 7d
+    WBS-1.1 UX baseline and navigation shell :n1_1, 2026-10-26, 3d
+    WBS-12.1 Requirement Specification Report :n12_1, 2026-10-29, 4d
+    WBS-1.2 Authentication and onboarding UI :n1_2, 2026-11-07, 6d
+    WBS-3.4 Program editor UI :n3_4, 2026-11-13, 4d
+    WBS-5.1 Workout logging UI :n5_1, 2026-11-17, 4d
+    WBS-4.1 Calendar UI :n4_1, 2026-11-21, 4d
+    WBS-8.3 AI draft review UI :crit, n8_3, 2026-11-26, 4d
+    WBS-12.3 Software Design Report :crit, n12_3, 2026-11-30, 4d
+    WBS-8.5 Goal, program and insight UI :crit, n8_5, 2026-12-04, 4d
+    WBS-11.5 Accessibility review and setup validation :n11_5, 2026-12-12, 2d
+    WBS-11.9 Final defect fixes and regression :n11_9, 2026-12-14, 2d
+    WBS-12.6 Presentation package :n12_6, 2026-12-19, 3d
     section Can Sei Keçeci
-    WBS-1.2 API and AI feasibility :crit, WBS1_2, 2026-10-26, 7d
-    WBS-2.2 Identity and profile APIs :crit, WBS2_2, 2026-11-02, 7d
-    WBS-3.2 Workout and program APIs :crit, WBS3_2, 2026-11-09, 7d
-    WBS-4.2 Scheduling and sync APIs :crit, WBS4_2, 2026-11-16, 7d
-    WBS-5.2 AI logging and provider adapter :crit, WBS5_2, 2026-11-23, 7d
-    WBS-6.2 AI planning and insights service :crit, WBS6_2, 2026-11-30, 7d
-    WBS-7.2 AI and authorization hardening :crit, WBS7_2, 2026-12-07, 7d
-    WBS-8.2 Verification evidence and test report :crit, WBS8_2, 2026-12-14, 7d
-    WBS-9.2 Final evidence and handover :crit, WBS9_2, 2026-12-21, 7d
+    WBS-8.1 AI provider feasibility and adapter skeleton :n8_1, 2026-10-26, 3d
+    WBS-1.3 Identity and profile APIs :crit, n1_3, 2026-11-02, 5d
+    WBS-3.3 Program APIs with version snapshots :crit, n3_3, 2026-11-07, 4d
+    WBS-5.2 Workout record APIs :crit, n5_2, 2026-11-11, 4d
+    WBS-4.2 Scheduling APIs :crit, n4_2, 2026-11-15, 4d
+    WBS-8.2 Natural-language logging service :crit, n8_2, 2026-11-19, 7d
+    WBS-8.4 Goal, program and insight service :n8_4, 2026-11-26, 6d
+    WBS-11.6 Regression evidence :crit, n11_6, 2026-12-12, 4d
+    WBS-12.4 Software Test Report :crit, n12_4, 2026-12-16, 3d
+    WBS-11.10 Post-report test addendum :crit, n11_10, 2026-12-19, 2d
     section Hamza Çevikbaş
-    WBS-1.3 Repository and CI foundation :crit, WBS1_3, 2026-10-26, 7d
-    WBS-2.3 Firebase and integration harness :crit, WBS2_3, 2026-11-02, 7d
-    WBS-3.3 Local drafts and queue :crit, WBS3_3, 2026-11-09, 7d
-    WBS-4.3 Reminders and sync integration :crit, WBS4_3, 2026-11-16, 7d
-    WBS-5.3 Core integration and failure tests :crit, WBS5_3, 2026-11-23, 7d
-    WBS-6.3 Chat and moderation APIs :crit, WBS6_3, 2026-11-30, 7d
-    WBS-7.3 Deployment and recovery rehearsal :crit, WBS7_3, 2026-12-07, 7d
-    WBS-8.3 Performance and release candidate :crit, WBS8_3, 2026-12-14, 7d
-    WBS-9.3 Code release and reproducibility :WBS9_3, 2026-12-21, 5d
+    WBS-1.4 Firebase and App Check configuration :crit, n1_4, 2026-10-26, 3d
+    WBS-10.1 Repository, CI and Compose foundation :crit, n10_1, 2026-10-29, 4d
+    WBS-11.1 Security scanning and authorization test harness :n11_1, 2026-11-02, 3d
+    WBS-10.2 Database backup and restore rehearsal :n10_2, 2026-11-05, 3d
+    WBS-6.2 Idempotent synchronization endpoints :crit, n6_2, 2026-11-15, 2d
+    WBS-6.1 Local drafts and operation queue :crit, n6_1, 2026-11-17, 6d
+    WBS-4.3 Reminder jobs and FCM delivery :crit, n4_3, 2026-11-23, 4d
+    WBS-6.3 Client synchronization and reconnection :crit, n6_3, 2026-11-27, 3d
+    WBS-11.2 Core integration and failure tests :n11_2, 2026-11-30, 3d
+    WBS-10.4 Restore and scan regression :n10_4, 2026-12-03, 2d
+    WBS-11.3 Security and AI hardening :n11_3, 2026-12-05, 4d
+    WBS-11.7 Performance measurement and release candidate :n11_7, 2026-12-12, 3d
+    WBS-12.5 User/admin documentation and AI-use record :n12_5, 2026-12-15, 3d
+    WBS-10.3 Release packaging and reproducibility :crit, n10_3, 2026-12-21, 2d
     section Selim Efe Aytemur
-    WBS-1.4 Data and catalogue baseline :crit, WBS1_4, 2026-10-26, 7d
-    WBS-2.4 Catalogue and program data access :crit, WBS2_4, 2026-11-02, 7d
-    WBS-3.4 Goals and progress specification :crit, WBS3_4, 2026-11-09, 7d
-    WBS-4.4 Progress and motivation engine :crit, WBS4_4, 2026-11-16, 7d
-    WBS-5.4 Friends and sharing foundation :crit, WBS5_4, 2026-11-23, 7d
-    WBS-6.4 Social and joint-workout UI :crit, WBS6_4, 2026-11-30, 7d
-    WBS-7.4 Whole-product integration :crit, WBS7_4, 2026-12-07, 7d
-    WBS-8.4 Acceptance and demo rehearsal :crit, WBS8_4, 2026-12-14, 7d
-    WBS-9.4 Demo execution and acceptance record :WBS9_4, 2026-12-21, 6d
-    section Submission milestones
-    Requirements specification :milestone, ms1, 2026-11-02, 0d
-    Requirements analysis :milestone, ms2, 2026-11-23, 0d
-    Software design :milestone, ms3, 2026-12-07, 0d
-    Software test report :milestone, ms4, 2026-12-21, 0d
-    Codebase :milestone, ms5, 2026-12-25, 0d
-    Demo :milestone, ms6, 2026-12-26, 0d
-    Presentation :milestone, ms7, 2026-12-28, 0d
+    WBS-3.1 Domain data model and catalogue seed :n3_1, 2026-10-26, 5d
+    WBS-3.2 Catalogue and template APIs :crit, n3_2, 2026-11-02, 5d
+    WBS-7.1 Metric definitions and fixtures :n7_1, 2026-11-07, 2d
+    WBS-2.1 Goal and preference management :n2_1, 2026-11-09, 3d
+    WBS-12.2 Requirement Analysis Report :n12_2, 2026-11-12, 4d
+    WBS-7.2 Progress engine :n7_2, 2026-11-16, 6d
+    WBS-9.1 Friend and sharing APIs :n9_1, 2026-11-22, 6d
+    WBS-9.2 Friend and sharing UI :n9_2, 2026-11-28, 3d
+    WBS-7.3 History and progress dashboard UI :n7_3, 2026-12-01, 3d
+    WBS-11.4 Whole-product integration :crit, n11_4, 2026-12-08, 4d
+    WBS-11.8 Acceptance scenarios and demo rehearsal :n11_8, 2026-12-12, 3d
+    WBS-12.7 Demo preparation and acceptance record :crit, n12_7, 2026-12-23, 2d
+    section Milestones
+    Requirement Specification :milestone, ms0, 2026-11-02, 0d
+    Requirement Analysis :milestone, ms1, 2026-11-23, 0d
+    Software Design :milestone, ms2, 2026-12-07, 0d
+    Software Test Report :milestone, ms3, 2026-12-21, 0d
+    Codebase :milestone, ms4, 2026-12-25, 0d
+    Demonstration (WBS-12.8) :milestone, ms5, 2026-12-26, 0d
+    Presentation (WBS-12.9) :milestone, ms6, 2026-12-28, 0d
 ```
 
-### 5.4 Submission Calendar and Control Gates
+**Weekly workload check.** The table gives scheduled preparation hours per member for each seven-day window starting on 26 October. No value exceeds seven hours, so the protected eighth hour is never used by scheduled work. Week 9 additionally contains one demonstration hour per member.
 
-| Submission | Deadline (23:59) | Required content / dependency |
+| Member | W1 | W2 | W3 | W4 | W5 | W6 | W7 | W8 | W9 | Total |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Ahmet Abalı | 7 | 2 | 7 | 7 | 6 | 7 | 3 | 4 | 1 | 44 |
+| Can Sei Keçeci | 3 | 7 | 7 | 7 | 7 | 2 | 2 | 7 | 0 | 42 |
+| Hamza Çevikbaş | 7 | 6 | 1 | 7 | 7 | 7 | 4 | 4 | 2 | 45 |
+| Selim Efe Aytemur | 5 | 7 | 7 | 7 | 7 | 4 | 6 | 1 | 2 | 46 |
+
+**Schedule consistency check:**  
+All 48 mandatory preparation activities appear with identical IDs, durations and owners in the WBS (Section 2), the estimates (Section 3.1), the assignments (Section 4.2), the network table and chart (Section 5.1) and the Gantt chart. Each duration in days equals the estimated hours. The Gantt start dates equal the calculated early starts. The weekly totals per member equal the per-member preparation hours in Section 3.2 (Ahmet 44 h, Can 42 h, Hamza 45 h, Selim 46 h). All seven submission and delivery milestones are met with a non-negative margin. Optional activities have no dates and are excluded from the network.
+
+### 5.4 Submission Calendar
+
+| Submission | Deadline (23:59) | Prepared in |
 |---|---|---|
-| Project Charter | 12 October 2026 | Project purpose, stakeholders, scope, technology strategy and milestones; completed artifact at planning baseline. |
-| Project Plan | 26 October 2026 | Scope, product deliverables, tasks, WBS, estimates, assignments, schedule and risks. |
-| Requirement Specification Report | 2 November 2026 | User stories/use cases, functional/non-functional requirements and acceptance conditions; first-week contracts and specification consolidation. |
-| Requirement Analysis Report | 23 November 2026 |  Domain model, workflows, constraints and traceability; prepared in WBS-4.1, submitted at the start of WBS-5.1. |
-| Software Design Report | 7 December 2026 | Architecture, schema, APIs, client state, security and deployment design; prepared in WBS-6.1, submitted at the start of WBS-7.1. |
-| Software Test Report | 21 December 2026 | Executed tests, actual outcomes, coverage map, defects, environment and limitations; WBS-8.1–WBS-8.4. |
-| Codebase | 25 December 2026 | Tagged source, migrations, tests, configuration examples, build/deploy instructions and Android build; WBS-9.3. |
-| Demo | 26 December 2026 | Rehearsed live workflow and backup evidence; WBS-9.4. |
-| Presentation | 28 December 2026 | Problem, requirements, design, demonstrated results, limitations and next stages; WBS-9.1. |
+| Project Charter | 2026-10-12 | Completed |
+| Project Plan | 2026-10-26 | This document |
+| Requirement Specification Report | 2026-11-02 | WBS-12.1 |
+| Requirement Analysis Report | 2026-11-23 | WBS-12.2 |
+| Software Design Report | 2026-12-07 | WBS-12.3 |
+| Software Test Report | 2026-12-21 | WBS-12.4 (with WBS-11.5–WBS-11.8 evidence) |
+| Codebase | 2026-12-25 | WBS-10.3 |
+| Demonstration | 2026-12-26 | WBS-12.7 (preparation), WBS-12.8 (delivery) |
+| Presentation | 2026-12-28 | WBS-12.6 (preparation), WBS-12.9 (delivery) |
 
-The two shifted dates apply only to the charter and plan. No later deadline has been moved. The specification, analysis and design reports are assembled in WBS-1.1, WBS-4.1 and WBS-6.1 respectively. Their submission occurs on the first day of WBS-2.1, WBS-5.1 and WBS-7.1 respectively. These submission actions do not wait for the week-long UI package to finish.
+Changes made after the test report are documented in a dated addendum (WBS-11.10) that identifies the commit, the affected test cases and the regression outcome.
 
-The first gate, by 1 November, verifies environment access, PostgreSQL compatibility, one provider call, the data model and a requirements inventory. The second gate, by 8 November, demonstrates login/profile/catalogue. By 22 November, manual recording, synchronization, calendar and deterministic progress must integrate. By 6 December, the design report must describe implemented components and clearly identify the remaining chat/moderation UI and integration work. The week ending 13 December completes all required feature slices, closes integration and freezes feature scope. The week ending 20 December produces the tested release candidate and test-report evidence. The final week is limited to fixes, regression, release packaging and delivery.
+### 5.5 Verification and Release Acceptance
 
-Changes after the 21 December test report receive a dated test addendum identifying the commit, affected cases and regression outcome. The report is not represented as evidence for later untested code. No feature is accepted solely because a screen exists or an AI demonstration succeeded once.
+Calculation and validation rules are covered by unit tests; migrations, transactions and authorization by PostgreSQL integration tests; workflows and failure paths by API tests; client state and primary screens by Flutter widget tests; and complete flows by manual end-to-end tests on Android. AI failures are reproduced with provider stubs, while a small recorded sample of live calls demonstrates the real integration; results obtained only with stubs are labelled as such.
 
-### 5.5 Verification, Release Acceptance and Demo
+The minimum end-to-end suite covers: email and Google sign-in; manual goal and program creation; live and post-workout logging; offline drafts across restart and their replay, including overwrite of an edited record; natural-language logging with review and confirmation; AI goal and program suggestions; history and metric recalculation; scheduling and reminders; friend requests; and sharing and revocation of workout summaries. Optional capabilities receive additional acceptance tests only if they are selected.
 
-Use unit tests for calculation/validation rules, PostgreSQL integration tests for migrations/transactions/authorization, API tests for workflows and failure paths, Flutter unit/widget tests for state and primary screens, and manual end-to-end tests on Android. Provider stubs cover reproducible AI failures; a small recorded live-provider sample proves actual integration. Stub-only results must be labelled. Test data includes distinct owners, an outsider, a removed group member and a moderator.
+A release requires every mandatory deliverable to meet its acceptance criterion, all primary end-to-end scenarios to pass, no open severity-1 defect (private-data exposure, data loss or application-wide failure) or severity-2 defect (a mandatory workflow unusable without a workaround), and no unreviewed critical or high scan finding. Unmet performance or accessibility targets are reported together with a recorded acceptance decision.
 
-The minimum end-to-end suite includes: email and Google entry; manual goal/program creation; live/manual post-workout recording; offline draft restart and replay; text-to-workout review and confirmation; AI goal/program suggestions; history and metric recalculation; weekly/monthly scheduling and reminders; quote/badge display; friend requests; joint invitations with independent logs; shared-summary revocation; group chat; reporting/blocking/moderation; and clean deployment/restore. Each task T-01–T-18 maps to at least one acceptance or artifact-review record.
+The demonstration starts from a known seed dataset and shows the planning–logging–progress cycle, a confirmed natural-language draft and a two-user sharing scenario. A screen recording of the same tagged build serves as a fallback in case of a provider or network outage.
 
-Release requires all mandatory deliverables to meet their acceptance criteria, all primary end-to-end scenarios to pass, no unresolved severity-1 or severity-2 defect, and no unreviewed critical/high scan finding. Severity 1 means private-data exposure, data loss/corruption, or application-wide failure; severity 2 means a mandatory workflow is unusable without an acceptable workaround. Lower-severity defects require a recorded impact, owner and disposition. A scan finding can be classified as non-applicable only with documented evidence, not merely to make a pipeline green. Report any unmet performance/usability target openly and obtain a recorded acceptance decision; do not silently remove the target.
-
-The demonstration starts from a known seed dataset and shows the full planning–logging–progress cycle, a natural-language draft approved by the user, and a two-user coordination/sharing/chat flow with privacy checks. The backup is a screen recording of the same tagged build plus saved test evidence. A provider/network outage may use clearly labelled prepared output or a stub to explain the flow. Release code and evidence remain reproducible independently of the presentation.
-
-### 5.6 Schedule Consistency and Change Control
-
-There are 36 uniquely identified WBS activities, each with mapped tasks, an owner, seven person-hours, dependencies, dates and a completion condition. Each member owns one package per weekly window, totaling 63 planned hours over nine weeks. Standard weekly planned allocation is 0.175 FTE per member, below the 0.200 baseline capacity. Final shortened packages concentrate the same seven hours inside their deadline windows without increasing the weekly total. No optional platform work is charged to this capacity.
-
-Review and documentation are included in the planned envelopes; contingency is held separately. Required cross-stream dependencies are represented in the predecessor table and within each diagram segment. The Gantt uses the forward-pass dates. Milestone checks additionally impose the earlier report/code/demo deadlines. The start and end dates, 63-day critical paths and 252-hour effort total therefore describe different, consistent dimensions of the same baseline.
-
-The first two weeks are a feasibility checkpoint. If actual throughput or technical findings indicate that a mandatory slice exceeds its envelope, the Project Manager is to update remaining estimates and identify which deadline is threatened. Use protected reserve, confirmed extra availability, reassignment and simpler implementation depth first. Any reduction of mandatory scope or alteration of an academic deadline requires an explicit approved change. Preserve the original baseline and record the revised version; do not retrospectively rewrite estimates to match spent time.
+---
 
 ## 6. Risks
 
 ### 6.1 Risk Impact / Probability Chart
 
-Probability is an ordinal planning judgment: 1 very low, 2 low, 3 medium, 4 high, 5 very high. Impact is 1 negligible/local correction, 2 minor rework without milestone threat, 3 significant rework or impaired noncritical behavior, 4 threat to a mandatory feature or milestone, and 5 privacy/data loss or inability to deliver the pilot. Scores are P × I; they prioritize attention but are not measured failure probabilities. The register is ordered by ascending probability and then impact.
+Probability and impact are scored from 1 (lowest) to 5 (highest). For impact, 1 denotes a local correction, 2 minor rework, 3 significant rework on non-critical work, 4 a threat to a mandatory feature or milestone, and 5 privacy or data loss, or inability to deliver the pilot. Risks are listed in ascending order of probability and then impact.
 
-| Risk ID | Risk | P | I | Score | Affected WBS |
-|---|---|---|---|---|---|
-| R-01 | Development device or local data loss | 2 | 3 | 6 | WBS-1.3, WBS-3.3, WBS-7.3 |
-| R-02 | Push notifications delayed or device permission denied | 2 | 3 | 6 | WBS-4.1, WBS-4.3 |
-| R-03 | Customer or evaluator unavailable | 2 | 3 | 6 | WBS-8.1, WBS-8.4, WBS-9.4 |
-| R-04 | Kubernetes environment or Helm configuration fails | 2 | 4 | 8 | WBS-7.3, WBS-8.3 |
-| R-05 | Database migration or synchronization loses/duplicates records | 2 | 5 | 10 | WBS-3.3, WBS-4.2, WBS-5.3, WBS-7.3 |
-| R-06 | Unauthorized access to records or group content | 2 | 5 | 10 | WBS-2.2, WBS-5.4, WBS-6.3, WBS-7.2 |
-| R-07 | Framework/provider version incompatibility | 3 | 4 | 12 | WBS-1.2, WBS-1.3, WBS-2.3 |
-| R-08 | Model access, quota, billing or external API outage | 3 | 4 | 12 | WBS-1.2, WBS-5.2, WBS-6.2, WBS-8.2 |
-| R-09 | Ambiguous or fabricated AI workout output | 3 | 4 | 12 | WBS-5.1, WBS-5.2, WBS-6.2, WBS-7.2 |
-| R-10 | UI/API integration or requirement ambiguity causes rework | 3 | 4 | 12 | WBS-1.1, WBS-1.2, WBS-4.1, WBS-7.4 |
-| R-11 | Exam workload reduces member availability | 4 | 4 | 16 | WBS-1.1–WBS-9.4 |
-| R-12 | Mandatory scope exceeds the 252-hour implementation estimate | 4 | 5 | 20 | WBS-1.1–WBS-9.4 |
+**Risk register:**
 
-| Impact ↓ / Probability → | 1 — Very low | 2 — Low | 3 — Medium | 4 — High | 5 — Very high |
+| Risk ID | Risk description | Probability (1–5) | Impact (1–5) | Risk score (P × I) | Affected WBS activity ID(s) |
 |---|---|---|---|---|---|
-| 1 — Very low | — | — | — | — | — |
-| 2 — Low | — | — | — | — | — |
-| 3 — Medium | — | R-01; R-02; R-03 | — | — | — |
-| 4 — High | — | R-04 | R-07; R-08; R-09; R-10 | R-11 | — |
-| 5 — Very high | — | R-05; R-06 | — | R-12 | — |
+| R-01 | Kubernetes/Helm configuration fails (optional scope) | 2 | 2 | 4 | WBS-17.1, WBS-17.2 |
+| R-02 | Development device or local data loss | 2 | 3 | 6 | WBS-10.1, WBS-6.1, WBS-10.2, WBS-10.4 |
+| R-03 | Push notifications delayed or permission denied | 2 | 3 | 6 | WBS-4.1, WBS-4.3 |
+| R-04 | Customer unavailable for review | 2 | 3 | 6 | WBS-11.8, WBS-12.7 |
+| R-05 | Migration or synchronization duplicates records or overwrites newer data unexpectedly | 2 | 5 | 10 | WBS-6.1, WBS-6.2, WBS-6.3, WBS-11.2, WBS-10.2 |
+| R-06 | Unauthorized access to records or shared summaries | 2 | 5 | 10 | WBS-1.3, WBS-9.1, WBS-11.1, WBS-11.3 |
+| R-07 | Framework or provider version incompatibility | 3 | 4 | 12 | WBS-10.1, WBS-1.3, WBS-1.4 |
+| R-08 | AI model access, quota, billing or outage problems | 3 | 4 | 12 | WBS-8.1, WBS-8.2, WBS-8.4, WBS-11.6 |
+| R-09 | Ambiguous or fabricated AI workout output | 3 | 4 | 12 | WBS-8.2, WBS-8.3, WBS-8.4, WBS-11.3 |
+| R-10 | API contract or requirement ambiguity causes rework | 3 | 4 | 12 | WBS-1.1, WBS-8.1, WBS-4.1, WBS-11.4 |
+| R-11 | Mandatory scope exceeds the estimated effort | 3 | 5 | 15 | All mandatory activities |
+| R-12 | Examination workload reduces member availability | 4 | 4 | 16 | All mandatory activities |
+
+| Impact ↓ / Probability → | 1 (Very low) | 2 (Low) | 3 (Medium) | 4 (High) | 5 (Very high) |
+|---|---|---|---|---|---|
+| **1 — Very low** | — | — | — | — | — |
+| **2 — Low** | — | R-01 | — | — | — |
+| **3 — Medium** | — | R-02, R-03, R-04 | — | — | — |
+| **4 — High** | — | — | R-07, R-08, R-09, R-10 | R-12 | — |
+| **5 — Very high** | — | R-05, R-06 | R-11 | — | — |
 
 ### 6.2 Risk Mitigation / Aversion Plan
 
-| Risk ID | Related WBS | Owner | Trigger | Preventive action | Contingency |
+| Risk ID | Related WBS activity ID(s) | Trigger | Mitigation / avoidance strategy | Responsible member | Contingency if risk occurs |
 |---|---|---|---|---|---|
-| R-01 | WBS-1.3, WBS-3.3, WBS-7.3 | Hamza Çevikbaş | Unpushed work or missing recoverable backup. | Push reviewed work frequently, document environment and back up database/configuration securely. | Restore on a second machine; use the documented Compose environment and seed data. |
-| R-02 | WBS-4.1, WBS-4.3 | Hamza Çevikbaş | Controlled reminder does not arrive or permission is denied. | Test permission/token lifecycle and cancelled jobs; show scheduled sessions independently of push delivery. | Retry transient failures with bounds; record delivery limitation and use in-app calendar reminders during demonstration. |
-| R-03 | WBS-8.1, WBS-8.4, WBS-9.4 | Selim Efe Aytemur | No response to scheduled review or fewer than five evaluators confirmed. | Arrange reviews and usability participants in advance; circulate specific acceptance scenarios. | Reschedule within the gate window; run internal tests and disclose uncompleted external acceptance. |
-| R-04 | WBS-7.3, WBS-8.3 | Hamza Çevikbaş | Smoke install/health/rollback fails. | Keep Compose as pilot baseline; use a small local cluster and limited Helm configuration. | Diagnose within reserve; preserve Compose delivery and record any unmet Kubernetes test explicitly for decision. |
-| R-05 | WBS-3.3, WBS-4.2, WBS-5.3, WBS-7.3 | Selim Efe Aytemur | Duplicate records, stale overwrite or failed restore observed. | Use transactions, idempotency keys, versions, replay tests and backup/restore rehearsal. | Stop affected writes, preserve queued drafts, restore verified data and rerun regression before release. |
-| R-06 | WBS-2.2, WBS-5.4, WBS-6.3, WBS-7.2 | Can Sei Keçeci | Foreign-owner/member request succeeds. | Centralize ownership/membership/role checks; test revocation and removed users; minimize logs. | Disable affected endpoint, revoke compromised credentials if needed, repair authorization and block release until verified. |
-| R-07 | WBS-1.2, WBS-1.3, WBS-2.3 | Can Sei Keçeci | Pinned .NET/EF/Npgsql combination fails smoke tests. | Run compatibility proof before feature work; pin a coherent package set and document reproducible restore. | Select a mutually supported package combination through an architecture decision; retain PostgreSQL and re-test migrations. |
-| R-08 | WBS-1.2, WBS-5.2, WBS-6.2, WBS-8.2 | Can Sei Keçeci | No approved API access at first gate, quota threshold reached or repeated provider errors. | Verify exact model IDs early, approve spending limits, cap requests/context and isolate adapters. | Use a verified allowed fallback if available; keep manual flows and disclose temporary AI unavailability; escalate unmet live-AI acceptance. |
-| R-09 | WBS-5.1, WBS-5.2, WBS-6.2, WBS-7.2 | Can Sei Keçeci | Invented exercise, unsupported unit or unchecked write reaches a test. | Validate structure and catalogue IDs; request clarification; require editable confirmation and adversarial tests. | Reject unsafe/invalid draft, retain original text, offer manual correction and patch validation before further acceptance. |
-| R-10 | WBS-1.1, WBS-1.2, WBS-4.1, WBS-7.4 | Ahmet Abalı | Contract disagreement, repeated blocked integration or disputed metric definition. | Freeze reviewed contracts per slice, maintain fixtures and resolve semantics before dependent implementation. | Hold a focused decision review, update affected tests/contracts and reforecast the dependency chain. |
-| R-11 | WBS-1.1–WBS-9.4 | Ahmet Abalı | Member forecasts fewer than eight hours or misses an integration commitment. | Collect weekly availability and cross-train reviewers; keep one hour per member as reserve. | Reassign within confirmed capacity; use agreed extra hours if available and escalate any milestone threat. |
-| R-12 | WBS-1.1–WBS-9.4 | Ahmet Abalı | After week 2, forecast remaining effort exceeds remaining planned hours plus reserve. | Bound every feature, measure accepted throughput, reuse platform services and prevent optional platform expansion. | Use reserve and confirmed capacity; propose a documented scope/depth or schedule decision to Product Owner/customer; never silently drop a required feature. |
+| R-01 | WBS-17.1, WBS-17.2 | Smoke install, health check or rollback fails. | Test early on a small local cluster; keep Docker Compose as the pilot baseline. | Hamza Çevikbaş | Leave T-17 unselected and report the outcome. |
+| R-02 | WBS-10.1, WBS-6.1, WBS-10.2, WBS-10.4 | Unpushed work or a missing backup is detected. | Push reviewed work frequently and document the environment. | Hamza Çevikbaş | Restore on another machine from the repository and the Compose seed data. |
+| R-03 | WBS-4.1, WBS-4.3 | A controlled reminder does not arrive. | Test the permission and token lifecycle; show scheduled sessions independently of push delivery. | Hamza Çevikbaş | Retry transient failures with a bound; demonstrate in-app reminders and record the limitation. |
+| R-04 | WBS-11.8, WBS-12.7 | No response to a scheduled review. | Agree review dates early and circulate acceptance scenarios in advance. | Selim Efe Aytemur | Proceed with internal acceptance and record that external review is outstanding. |
+| R-05 | WBS-6.1, WBS-6.2, WBS-6.3, WBS-11.2, WBS-10.2 | Duplicate records or an unexpected overwrite in tests. | Use operation IDs, transactions and replay tests; document last-write-wins behaviour for users. | Hamza Çevikbaş | Stop affected writes, preserve queued drafts, restore verified data and rerun regression. |
+| R-06 | WBS-1.3, WBS-9.1, WBS-11.1, WBS-11.3 | A non-owner or non-friend request succeeds. | Build the authorization test harness early and extend it with each endpoint. | Can Sei Keçeci | Disable the affected endpoint, fix it and block the release until it is verified. |
+| R-07 | WBS-10.1, WBS-1.3, WBS-1.4 | The pinned .NET/EF Core/Npgsql set fails the compatibility check. | Run the compatibility check before feature work and pin a coherent package set. | Hamza Çevikbaş | Select a compatible version set and re-test the migrations. |
+| R-08 | WBS-8.1, WBS-8.2, WBS-8.4, WBS-11.6 | No API access at the first gate, or a quota threshold is reached. | Verify the exact model early, approve a spending limit and cap requests. | Can Sei Keçeci | Switch to a fallback provider if available; keep manual flows and disclose the limitation. |
+| R-09 | WBS-8.2, WBS-8.3, WBS-8.4, WBS-11.3 | An invented exercise or unsupported unit reaches a test. | Validate structure and catalogue IDs; require confirmation; run adversarial tests. | Can Sei Keçeci | Reject the draft, keep the original text and offer manual correction. |
+| R-10 | WBS-1.1, WBS-8.1, WBS-4.1, WBS-11.4 | A contract dispute or a repeatedly blocked integration. | Agree contracts at the start of each server activity and maintain shared fixtures. | Ahmet Abalı | Hold a focused decision review and re-forecast the affected chain. |
+| R-11 | All mandatory activities | The week-2 comparison of actual and estimated hours forecasts an overrun. | Measure actual effort and AI savings from week 1; select optional items only when capacity is available. | Ahmet Abalı | Use uncommitted hours, then reserve, then confirmed extra hours; escalate any remaining shortfall to the Product Owner and customer. |
+| R-12 | All mandatory activities | A member forecasts fewer than eight hours in a week. | Collect weekly availability and cross-train reviewers. | Ahmet Abalı | Reassign work within confirmed capacity and escalate any milestone threat. |
 
-### 6.3 Risk Ownership and Escalation
+Each owner checks the trigger at the weekly check-in. When a trigger occurs, the risk is recorded as an issue together with its impact, corrective action and the reserve consumed. The 36-hour reserve is shared across all risks. Privacy and data-integrity defects block the release regardless of schedule pressure.
 
-The named owner checks the trigger at each weekly checkpoint and reports active issues immediately. A risk becomes an issue when its trigger occurs; record the observed impact, corrective action, due date, consumed reserve and next review. Privacy/data-integrity defects block release regardless of calendar pressure. The Product Owner decides product tradeoffs and the Project Manager updates the forecast; neither role can unilaterally move a course deadline.
-
-Risks R-11 and R-12 receive continuous attention because limited availability and breadth of scope are the strongest threats to delivery. The 36-hour reserve is shared across risks rather than allocated repeatedly to each one. If forecast reserve consumption exceeds the remaining reserve, the next checkpoint must produce an explicit recovery or change decision.
+---
 
 ## Appendix A. Requirements-to-Work-Package Traceability
 
-This index supports coverage review. Detailed test-case IDs and evidence links are added to the requirements/test records as those artifacts are produced. Activities listed here does not assert that it has already been completed.
-
-| Task | Deliverables | Implementing / verifying WBS activities |
+| Task | Deliverables | WBS activities |
 |---|---|---|
-| T-01 | D-01, D-08 | WBS-1.1, WBS-2.1, WBS-2.2, WBS-2.3 |
-| T-02 | D-01, D-05 | WBS-1.4, WBS-2.2, WBS-3.4, WBS-6.1, WBS-6.2 |
-| T-03 | D-02, D-08 | WBS-1.4, WBS-2.4 |
-| T-04 | D-02, D-05 | WBS-2.4, WBS-3.1, WBS-3.2, WBS-6.1, WBS-6.2 |
-| T-05 | D-03 | WBS-4.1, WBS-4.2, WBS-4.3 |
-| T-06 | D-04 | WBS-3.1, WBS-3.2 |
-| T-07 | D-04, D-05 | WBS-5.1, WBS-5.2 |
-| T-08 | D-04, D-08 | WBS-3.3, WBS-4.2, WBS-4.3, WBS-5.3 |
-| T-09 | D-04, D-06 | WBS-3.4, WBS-4.1, WBS-4.4, WBS-7.4 |
-| T-10 | D-05, D-06 | WBS-4.4, WBS-6.1, WBS-6.2 |
-| T-11 | D-07 | WBS-5.4, WBS-6.4 |
-| T-12 | D-03, D-07 | WBS-5.4, WBS-6.4, WBS-7.4, WBS-9.4 |
-| T-13 | D-07 | WBS-6.3, WBS-7.1 |
-| T-14 | D-07, D-08 | WBS-6.3, WBS-7.1 |
-| T-15 | D-05, D-08 | WBS-1.2, WBS-5.2, WBS-6.2, WBS-7.2 |
-| T-16 | D-08, D-09 | WBS-1.2, WBS-1.3, WBS-1.4, WBS-2.2, WBS-2.3, WBS-3.3, WBS-7.3, WBS-8.3, WBS-9.3 |
-| T-17 | D-01–D-09 | WBS-2.3, WBS-5.3, WBS-7.2, WBS-7.3, WBS-7.4, WBS-8.1, WBS-8.2, WBS-8.3, WBS-8.4, WBS-9.1, WBS-9.2, WBS-9.3, WBS-9.4 |
-| T-18 | D-10 | WBS-1.1, WBS-2.1, WBS-5.1, WBS-7.1, WBS-8.1, WBS-8.2, WBS-8.4, WBS-9.1, WBS-9.2, WBS-9.4 |
+| T-01 | D-01, D-08 | WBS-1.1, WBS-1.2, WBS-1.3, WBS-1.4 |
+| T-02 | D-01 | WBS-2.1 |
+| T-03 | D-02, D-08 | WBS-3.1, WBS-3.2, WBS-3.3, WBS-3.4 |
+| T-04 | D-03 | WBS-4.1, WBS-4.2, WBS-4.3 |
+| T-05 | D-04 | WBS-5.1, WBS-5.2 |
+| T-06 | D-04, D-08 | WBS-6.1, WBS-6.2, WBS-6.3 |
+| T-07 | D-06 | WBS-7.1, WBS-7.2, WBS-7.3 |
+| T-08 | D-05 | WBS-8.1, WBS-8.2, WBS-8.3, WBS-8.4, WBS-8.5 |
+| T-09 | D-07 | WBS-9.1, WBS-9.2 |
+| T-10 | D-08, D-09 | WBS-10.1, WBS-10.2, WBS-10.3, WBS-10.4 |
+| T-11 | D-01 – D-09 | WBS-11.1, WBS-11.2, WBS-11.3, WBS-11.4, WBS-11.5, WBS-11.6, WBS-11.7, WBS-11.8, WBS-11.9, WBS-11.10 |
+| T-12 | D-10 | WBS-12.1, WBS-12.2, WBS-12.3, WBS-12.4, WBS-12.5, WBS-12.6, WBS-12.7, WBS-12.8, WBS-12.9 |
+| T-13 | D-06 | WBS-13.1 |
+| T-14 | D-07 | WBS-14.1, WBS-14.2 |
+| T-15 | D-03, D-07 | WBS-15.1, WBS-15.2 |
+| T-16 | D-02, D-07 | WBS-16.1, WBS-16.2 |
+| T-17 | D-09 | WBS-17.1, WBS-17.2 |
 
-## Appendix B. Definition of Done and Submission Checklist
+## Appendix B. Definition of Done
 
-A work package is done when its stated behavior or document content exists, its linked requirements have been checked, relevant positive/negative cases pass, review comments are resolved, changes are integrated, and evidence is attached to the backlog item. “Code written,” “AI generated,” and “works on one machine” are not independent completion conditions.
-
-Before each academic submission, verify the correct title/version, member information, consistent IDs, readable diagrams/tables, complete required sections, no obsolete template instructions, and consistency with the actual implementation status. Before the final code submission, verify the release tag, build instructions, dependency/configuration examples, migrations/seeds, test commands, Android artifact, sanitized evidence, known limitations and restore procedure. Credentials must not appear in source, screenshots, reports or presentation materials.
-
-The final handover distinguishes tested capabilities, known defects, optional future web/iOS stages and unresolved external dependencies. Acceptance claims are tied to recorded evidence. This plan is a controlled baseline: progress and actual test outcomes will be documented as work is executed, without presenting planned work as completed work.
+An activity is complete when its stated behaviour or document content exists, its linked requirements have been checked, the relevant positive and negative tests pass, review comments are resolved, the change is merged and the evidence is linked from the backlog item. Before each submission, the team verifies titles, versions, member information, ID consistency, readable diagrams and the absence of template instructions or credentials.
