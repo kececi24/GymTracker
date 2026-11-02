@@ -12,7 +12,7 @@
 | **Instructor** | Prof. Dr. Tolga Ovatman, Assoc. Prof. Dr. Ayşe Tosun |
 | **Repository** | https://github.com/kececi24/gymtracker |
 | **Submission date** | 2026-10-26 |
-| **Document version** | 1.0 |
+| **Document version** | 1.1 |
 
 ---
 
@@ -502,10 +502,34 @@ The network uses activity-on-node notation with deterministic durations and fini
 | **WBS-10.3** | Hamza | WBS-11.10, WBS-12.5 | WBS-12.5 | 2 | 56 | 58 | 56 | 58 | **0** |
 | **WBS-12.7** | Selim | WBS-10.3 | WBS-11.8 | 2 | 58 | 60 | 58 | 60 | **0** |
 
-In the chart below, solid arrows are technical dependencies and dashed arrows are resource-only dependencies. Critical activities (zero total float) are shaded red.
+The concise chart below groups the zero-float activities into critical-path segments. All activity numbers have the prefix WBS-; ∥ denotes parallel activities. Arrows summarize the combined technical and resource dependencies. Non-critical activities and individual predecessor links remain in the complete network table above; this overview does not replace that table for scheduling calculations.
+
+**Concise PERT chart — critical-path overview**
 
 ```mermaid
 flowchart TD
+    A["Foundation: days 0–20<br/>1.4 → 10.1 → (1.3 ∥ 3.2) → 3.3 → 5.2"]
+    B["AI branch: days 20–35<br/>4.2 → 8.2 → 8.3"]
+    C["Offline branch: days 20–35<br/>6.2 → 6.1 → 4.3 → 6.3"]
+    D["Design and AI UI: days 35–43<br/>12.3 → 8.5"]
+    E["Integration and regression: days 43–51<br/>11.4 → 11.6"]
+    F["Test report and addendum: days 51–56<br/>12.4 → 11.10"]
+    G["Release and demo preparation: days 56–60<br/>10.3 → 12.7"]
+    A --> B
+    A --> C
+    B --> D
+    C --> D
+    D --> E --> F --> G
+    classDef critical fill:#ffe1e1,stroke:#d33,stroke-width:2px;
+    class A,B,C,D,E,F,G critical;
+```
+
+**Detailed PERT chart — all mandatory preparation activities**
+
+Solid arrows show technical dependencies; dashed arrows show resource-only dependencies. Red nodes have zero total float.
+
+```mermaid
+flowchart LR
     START((Start))
     FINISH((Finish))
     n1_1["WBS-1.1<br/>UX baseline and navigation shell<br/>3 d"]
@@ -673,7 +697,7 @@ flowchart TD
     n12_6 --> FINISH
     n12_7 --> FINISH
     classDef critical fill:#ffe1e1,stroke:#d33,stroke-width:3px;
-    class n1_3,n1_4,n3_2,n3_3,n4_2,n4_3,n5_2,n6_1,n6_2,n6_3,n8_2,n8_3,n8_5,n10_1,n10_3,n11_4,n11_6,n11_10,n12_3,n12_4,n12_7 critical;
+    class n1_4,n10_1,n1_3,n3_2,n3_3,n5_2,n4_2,n6_2,n6_1,n8_2,n4_3,n8_3,n6_3,n12_3,n8_5,n11_4,n11_6,n12_4,n11_10,n10_3,n12_7 critical;
 ```
 
 **PERT notes (activity durations and dependencies):**  
@@ -818,7 +842,7 @@ gantt
 | Selim Efe Aytemur | 5 | 7 | 7 | 7 | 7 | 4 | 6 | 1 | 2 | 46 |
 
 **Schedule consistency check:**  
-All 48 mandatory preparation activities appear with identical IDs, durations and owners in the WBS (Section 2), the estimates (Section 3.1), the assignments (Section 4.2), the network table and chart (Section 5.1) and the Gantt chart. Each duration in days equals the estimated hours. The Gantt start dates equal the calculated early starts. The weekly totals per member equal the per-member preparation hours in Section 3.2 (Ahmet 44 h, Can 42 h, Hamza 45 h, Selim 46 h). All seven submission and delivery milestones are met with a non-negative margin. Optional activities have no dates and are excluded from the network.
+All 48 mandatory preparation activities are covered by the WBS (Section 2), estimates (Section 3.1), assignments (Section 4.2), detailed network table (Section 5.1) and Gantt chart, with consistent IDs and corresponding effort, duration and owner values. The concise PERT diagram summarizes only the critical-path segments. Each duration in days equals the estimated hours. The Gantt start dates equal the calculated early starts. The weekly totals per member equal the per-member preparation hours in Section 3.2 (Ahmet 44 h, Can 42 h, Hamza 45 h, Selim 46 h). All seven submission and delivery milestones are met with a non-negative margin. Optional activities have no dates and are excluded from the network.
 
 ### 5.4 Submission Calendar
 
@@ -925,3 +949,106 @@ Each owner checks the trigger at the weekly check-in. When a trigger occurs, the
 ## Appendix B. Definition of Done
 
 An activity is complete when its stated behaviour or document content exists, its linked requirements have been checked, the relevant positive and negative tests pass, review comments are resolved, the change is merged and the evidence is linked from the backlog item. Before each submission, the team verifies titles, versions, member information, ID consistency, readable diagrams and the absence of template instructions or credentials.
+
+
+## Appendix C. Weekly Member Responsibilities
+
+This is the planned allocation from the Section 5.3 Gantt baseline, not a record of completed work. Weeks run Monday–Sunday. Each entry shows the activity ID, responsibility and hours scheduled within that week; activities spanning weeks appear in each relevant week. Hours follow the one-hour-per-calendar-day convention. Optional activities remain unscheduled. Unallocated capacity and protected reserve are governed by Section 3.2.
+
+### Week 1: 26 Oct–01 Nov 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-1.1 — UX baseline and navigation shell (3 h)<br/>WBS-12.1 — Requirement Specification Report (4 h) | 7 |
+| Can Sei Keçeci | WBS-8.1 — AI provider feasibility and adapter skeleton (3 h) | 3 |
+| Hamza Çevikbaş | WBS-1.4 — Firebase and App Check configuration (3 h)<br/>WBS-10.1 — Repository, CI and Compose foundation (4 h) | 7 |
+| Selim Efe Aytemur | WBS-3.1 — Domain data model and catalogue seed (5 h) | 5 |
+
+### Week 2: 02 Nov–08 Nov 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-1.2 — Authentication and onboarding UI (2 h) | 2 |
+| Can Sei Keçeci | WBS-1.3 — Identity and profile APIs (5 h)<br/>WBS-3.3 — Program APIs with version snapshots (2 h) | 7 |
+| Hamza Çevikbaş | WBS-11.1 — Security scanning and authorization test harness (3 h)<br/>WBS-10.2 — Database backup and restore rehearsal (3 h) | 6 |
+| Selim Efe Aytemur | WBS-3.2 — Catalogue and template APIs (5 h)<br/>WBS-7.1 — Metric definitions and fixtures (2 h) | 7 |
+
+### Week 3: 09 Nov–15 Nov 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-1.2 — Authentication and onboarding UI (4 h)<br/>WBS-3.4 — Program editor UI (3 h) | 7 |
+| Can Sei Keçeci | WBS-3.3 — Program APIs with version snapshots (2 h)<br/>WBS-5.2 — Workout record APIs (4 h)<br/>WBS-4.2 — Scheduling APIs (1 h) | 7 |
+| Hamza Çevikbaş | WBS-6.2 — Idempotent synchronization endpoints (1 h) | 1 |
+| Selim Efe Aytemur | WBS-2.1 — Goal and preference management (3 h)<br/>WBS-12.2 — Requirement Analysis Report (4 h) | 7 |
+
+### Week 4: 16 Nov–22 Nov 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-3.4 — Program editor UI (1 h)<br/>WBS-5.1 — Workout logging UI (4 h)<br/>WBS-4.1 — Calendar UI (2 h) | 7 |
+| Can Sei Keçeci | WBS-4.2 — Scheduling APIs (3 h)<br/>WBS-8.2 — Natural-language logging service (4 h) | 7 |
+| Hamza Çevikbaş | WBS-6.2 — Idempotent synchronization endpoints (1 h)<br/>WBS-6.1 — Local drafts and operation queue (6 h) | 7 |
+| Selim Efe Aytemur | WBS-7.2 — Progress engine (6 h)<br/>WBS-9.1 — Friend and sharing APIs (1 h) | 7 |
+
+### Week 5: 23 Nov–29 Nov 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-4.1 — Calendar UI (2 h)<br/>WBS-8.3 — AI draft review UI (4 h) | 6 |
+| Can Sei Keçeci | WBS-8.2 — Natural-language logging service (3 h)<br/>WBS-8.4 — Goal, program and insight service (4 h) | 7 |
+| Hamza Çevikbaş | WBS-4.3 — Reminder jobs and FCM delivery (4 h)<br/>WBS-6.3 — Client synchronization and reconnection (3 h) | 7 |
+| Selim Efe Aytemur | WBS-9.1 — Friend and sharing APIs (5 h)<br/>WBS-9.2 — Friend and sharing UI (2 h) | 7 |
+
+### Week 6: 30 Nov–06 Dec 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-12.3 — Software Design Report (4 h)<br/>WBS-8.5 — Goal, program and insight UI (3 h) | 7 |
+| Can Sei Keçeci | WBS-8.4 — Goal, program and insight service (2 h) | 2 |
+| Hamza Çevikbaş | WBS-11.2 — Core integration and failure tests (3 h)<br/>WBS-10.4 — Restore and scan regression (2 h)<br/>WBS-11.3 — Security and AI hardening (2 h) | 7 |
+| Selim Efe Aytemur | WBS-9.2 — Friend and sharing UI (1 h)<br/>WBS-7.3 — History and progress dashboard UI (3 h) | 4 |
+
+### Week 7: 07 Dec–13 Dec 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-8.5 — Goal, program and insight UI (1 h)<br/>WBS-11.5 — Accessibility review and setup validation (2 h) | 3 |
+| Can Sei Keçeci | WBS-11.6 — Regression evidence (2 h) | 2 |
+| Hamza Çevikbaş | WBS-11.3 — Security and AI hardening (2 h)<br/>WBS-11.7 — Performance measurement and release candidate (2 h) | 4 |
+| Selim Efe Aytemur | WBS-11.4 — Whole-product integration (4 h)<br/>WBS-11.8 — Acceptance scenarios and demo rehearsal (2 h) | 6 |
+
+### Week 8: 14 Dec–20 Dec 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-11.9 — Final defect fixes and regression (2 h)<br/>WBS-12.6 — Presentation package (2 h) | 4 |
+| Can Sei Keçeci | WBS-11.6 — Regression evidence (2 h)<br/>WBS-12.4 — Software Test Report (3 h)<br/>WBS-11.10 — Post-report test addendum (2 h) | 7 |
+| Hamza Çevikbaş | WBS-11.7 — Performance measurement and release candidate (1 h)<br/>WBS-12.5 — User/admin documentation and AI-use record (3 h) | 4 |
+| Selim Efe Aytemur | WBS-11.8 — Acceptance scenarios and demo rehearsal (1 h) | 1 |
+
+### Week 9: 21 Dec–27 Dec 2026
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-12.6 — Presentation package (1 h)<br/>WBS-12.8 — Demonstration delivery, 26 Dec (1 h) | 2 |
+| Can Sei Keçeci | WBS-12.8 — Demonstration delivery, 26 Dec (1 h) | 1 |
+| Hamza Çevikbaş | WBS-10.3 — Release packaging and reproducibility (2 h)<br/>WBS-12.8 — Demonstration delivery, 26 Dec (1 h) | 3 |
+| Selim Efe Aytemur | WBS-12.7 — Demo preparation and acceptance record (2 h)<br/>WBS-12.8 — Demonstration delivery, 26 Dec (1 h) | 3 |
+
+### Week 10: 28 Dec–03 Jan 2027
+
+| Member | Responsibilities | Scheduled hours |
+|---|---|---|
+| Ahmet Abalı | WBS-12.9 — Presentation delivery, 28 Dec (1 h) | 1 |
+| Can Sei Keçeci | WBS-12.9 — Presentation delivery, 28 Dec (1 h) | 1 |
+| Hamza Çevikbaş | WBS-12.9 — Presentation delivery, 28 Dec (1 h) | 1 |
+| Selim Efe Aytemur | WBS-12.9 — Presentation delivery, 28 Dec (1 h) | 1 |
+
+Week 10 contains only the separately committed presentation on 28 December. Total scheduled effort is 185 person-hours: 177 preparation hours and 8 event-attendance hours.
+
+## Changelog
+
+| Version | Date | Changes |
+|---|---|---|
+| 1.1 | 2026-11-02 | Added a concise critical-path PERT overview alongside the detailed 48-activity PERT chart and network table; added Appendix C with weekly responsibilities and hours derived from the existing Gantt schedule; added this changelog. |
