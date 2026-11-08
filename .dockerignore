@@ -1,0 +1,6 @@
+**
+!backend/
+!backend/GymTracker.Api/
+!backend/GymTracker.Api/**
+backend/**/bin/
+backend/**/obj/

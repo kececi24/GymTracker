@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: gymtracker
+      POSTGRES_USER: gymtracker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "gymtracker", "-d", "gymtracker"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    image: gymtracker-api:local
+    build:
+      context: .
+      dockerfile: backend/GymTracker.Api/Dockerfile
+    environment:
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__GymTracker: "Host=db;Database=gymtracker;Username=gymtracker;Password=${POSTGRES_PASSWORD}"
+      Database__MigrateOnStartup: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
