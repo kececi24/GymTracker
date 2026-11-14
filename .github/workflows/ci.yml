@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: gymtracker
+          POSTGRES_USER: gymtracker
+          POSTGRES_PASSWORD: gymtracker-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U gymtracker -d gymtracker"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      ConnectionStrings__GymTracker: Host=localhost;Database=gymtracker;Username=gymtracker;Password=gymtracker-ci
+      PGPASSWORD: gymtracker-ci
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore GymTracker.slnx
+      - run: dotnet format whitespace GymTracker.slnx --verify-no-changes --no-restore
+      - run: dotnet test GymTracker.slnx --configuration Release --no-restore
+      - run: dotnet tool restore
+      - name: Verify PostgreSQL migration and rollback
+        shell: bash
+        run: |
+          ef() {
+            dotnet ef "$@" --project backend/GymTracker.Api --configuration Release --no-build
+          }
+          table_exists() {
+            psql -XAt -v ON_ERROR_STOP=1 -h localhost -U gymtracker -d gymtracker \
+              -c "SELECT to_regclass('public.user_accounts') IS NOT NULL"
+          }
+          ef migrations has-pending-model-changes
+          ef database update
+          test "$(table_exists)" = t
+          ef database update 0
+          test "$(table_exists)" = f
+          ef database update
+          test "$(table_exists)" = t
+
+  android:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: mobile/pubspec.yaml
+          channel: stable
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v6
+        with:
+          name: gymtracker-debug-apk
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+
+  compose:
+    runs-on: ubuntu-24.04
+    env:
+      POSTGRES_PASSWORD: gymtracker-ci
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Build and start the Compose stack
+        run: docker compose up --build -d
+      - name: Check the API and its OpenAPI contract
+        run: |
+          curl --fail --silent --show-error --retry 15 --retry-delay 2 --retry-all-errors http://localhost:8080/health
+          curl --fail --silent --show-error http://localhost:8080/openapi/v1.json | jq -e '.paths["/health"].get'
+      - name: Scan repository for secrets
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          version: v0.69.3
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          exit-code: '1'
+      - name: Scan the API image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          version: v0.69.3
+          image-ref: gymtracker-api:local
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+      - if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down -v
