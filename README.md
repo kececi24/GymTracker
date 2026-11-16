@@ -6,7 +6,7 @@ GymTracker is an Android-first fitness planning and workout tracking application
 | --- | --- |
 | `backend/GymTracker.Api/` | ASP.NET Core API, EF Core migrations, and PostgreSQL configuration |
 | `backend/GymTracker.Api.Tests/` | xUnit smoke tests for the API and OpenAPI contract |
-| `mobile/` | Flutter Android welcome screen, Riverpod and Dio wiring, and a widget smoke test |
+| `mobile/` | Flutter Android client with Firebase authentication, Riverpod and Dio wiring, a navigation shell, and widget tests |
 | `.github/workflows/ci.yml` | Build, test, migration rollback, Compose smoke, and Trivy checks |
 | `docs/` | Course project charter, plan, requirements, and AI-use record |
 
@@ -32,19 +32,49 @@ The CI workflow exercises the migration, rollback to an empty schema, and reappl
 
 ## Start the Android app
 
-Install Flutter **3.44.0**, JDK 17, Android SDK Platform 36, Android Build Tools 36.0.0, and Android NDK 28.2.13676358. Start an Android emulator and run these commands from the repository root:
+Install Flutter **3.44.0**, JDK 17, Android SDK Platform 36, Android Build Tools 36.0.0, and Android NDK 28.2.13676358. Start an Android emulator.
+
+Firebase client configuration is generated locally and is not committed. Install the Firebase and FlutterFire CLIs once, then run the configuration from `mobile/`:
 
 ```sh
+npm install -g firebase-tools
+firebase login
+dart pub global activate flutterfire_cli
+
 cd mobile
+export PATH="$PATH:$HOME/.pub-cache/bin"
+flutterfire configure \
+  --project=gymtracker-dd0d6 \
+  --platforms=android,web \
+  --android-package-name=com.gymtracker.app \
+  --yes
+```
+
+This writes `lib/firebase_options.dart` and `android/app/google-services.json`, both gitignored. For Google Sign-In, register the SHA-1 and SHA-256 fingerprints of every signing key (debug and release) on the Android app in Firebase.
+
+Then run:
+
+```sh
 flutter pub get --enforce-lockfile
 flutter analyze
 flutter test
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-`10.0.2.2` reaches the host from the standard Android emulator. Local HTTP is enabled in debug builds. The welcome screen also runs without an API URL, which is how the widget smoke test exercises it. Run `flutter build apk --debug` to build the same APK variant as CI.
+`10.0.2.2` reaches the host from the standard Android emulator. Local HTTP is enabled in debug builds. The auth and navigation widget tests use a fake auth repository, so they need neither Firebase nor an API URL. Run `flutter build apk --debug` to build the same APK variant as CI.
+
+### CI Firebase configuration
+
+The CI build has no generated Firebase files. It uses inert placeholders from `mobile/tool/firebase/` by default so formatting, analysis, tests, and the debug build still run. To produce a CI APK that connects to the real Firebase project, add these repository secrets under **Settings → Secrets and variables → Actions**:
+
+```sh
+base64 -w0 mobile/lib/firebase_options.dart
+base64 -w0 mobile/android/app/google-services.json
+```
+
+Store the outputs as `FIREBASE_OPTIONS_DART_B64` and `GOOGLE_SERVICES_JSON_B64`. The workflow uses them when present and falls back to the placeholders otherwise.
 
 ## Feature work
 
-The scaffold includes the initial account schema, a public health endpoint, and a welcome screen. Firebase authentication, App Check, FCM, Drift storage, and the application workflows are implementation tasks tracked in the project plan. Flutter dependencies for those integrations are declared. WBS-1.4 owns Firebase project configuration and the provisional Android application ID `com.gymtracker.app` is to be confirmed before registration. WBS-8.1 owns AI provider selection.
+The scaffold includes the initial account schema, a public health endpoint, Firebase email/password and Google authentication, and the Home, Workouts, History, and Profile navigation shell. App Check, FCM, Drift storage, and the application workflows are implementation tasks tracked in the project plan. Flutter dependencies for those integrations are declared. WBS-1.4 owns Firebase project configuration; the provisional Android application ID `com.gymtracker.app` is registered in the `gymtracker-dd0d6` project and must be confirmed before Play Store publication, because it cannot change afterwards. WBS-8.1 owns AI provider selection.
 
