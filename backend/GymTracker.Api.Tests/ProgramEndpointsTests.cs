@@ -8,6 +8,71 @@ namespace GymTracker.Api.Tests;
 [Collection(PostgresApiCollection.Name)]
 public sealed class ProgramEndpointsTests(PostgresApiFactory factory)
 {
+    [Theory]
+    [InlineData("GET", "/api/programs")]
+    [InlineData("POST", "/api/programs")]
+    [InlineData("GET", "/api/programs/00000000-0000-0000-0000-000000000001")]
+    [InlineData("PUT", "/api/programs/00000000-0000-0000-0000-000000000001")]
+    [InlineData("DELETE", "/api/programs/00000000-0000-0000-0000-000000000001")]
+    [InlineData("GET", "/api/programs/00000000-0000-0000-0000-000000000001/versions/1")]
+    [InlineData("GET", "/api/program-versions/00000000-0000-0000-0000-000000000001")]
+    public async Task ProgramEndpoints_RequireAuthentication(string method, string path)
+    {
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(new HttpMethod(method), path)
+        {
+            Content = JsonContent.Create(new UpsertProgramRequest("Test", null, "full-body-foundation", null))
+        };
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("name")]
+    [InlineData("empty-exercises")]
+    [InlineData("unknown-exercise")]
+    [InlineData("sets")]
+    [InlineData("repetitions")]
+    [InlineData("load")]
+    [InlineData("rest")]
+    public async Task InvalidProgramWrites_DoNotCreateProgramsOrVersions(string invalidField)
+    {
+        using var client = factory.CreateAuthenticatedClient($"program-validation-{Guid.NewGuid():N}");
+        var valid = new UpsertProgramRequest("Original", "Keep this snapshot", null,
+            [new ProgramExerciseInput("barbell-back-squat", 3, 10, 40m, 90)]);
+        using var create = await client.PostAsJsonAsync("/api/programs", valid);
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var original = await create.Content.ReadFromJsonAsync<ProgramDetailResponse>();
+        Assert.NotNull(original);
+
+        var exercise = valid.Exercises![0];
+        var invalid = invalidField switch
+        {
+            "name" => valid with { Name = " " },
+            "empty-exercises" => valid with { Exercises = [] },
+            "unknown-exercise" => valid with { Exercises = [exercise with { ExerciseId = "missing-exercise" }] },
+            "sets" => valid with { Exercises = [exercise with { TargetSets = 0 }] },
+            "repetitions" => valid with { Exercises = [exercise with { TargetReps = 0 }] },
+            "load" => valid with { Exercises = [exercise with { TargetLoadKg = -1m }] },
+            "rest" => valid with { Exercises = [exercise with { RestSeconds = -1 }] },
+            _ => throw new ArgumentOutOfRangeException(nameof(invalidField))
+        };
+        using var rejectedCreate = await client.PostAsJsonAsync("/api/programs", invalid);
+        using var rejectedEdit = await client.PutAsJsonAsync($"/api/programs/{original.Id}", invalid);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedCreate.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedEdit.StatusCode);
+
+        var programs = await client.GetFromJsonAsync<List<ProgramSummaryResponse>>("/api/programs");
+        Assert.NotNull(programs);
+        Assert.Equal(original.Id, Assert.Single(programs).Id);
+        var persisted = await client.GetFromJsonAsync<ProgramDetailResponse>($"/api/programs/{original.Id}");
+        Assert.NotNull(persisted);
+        Assert.Equal(original.CurrentVersionId, persisted.CurrentVersionId);
+        Assert.Equal(original.Name, persisted.Name);
+        Assert.Single(persisted.Versions);
+        Assert.Equal(original.CurrentVersion.Exercises.ToArray(), persisted.CurrentVersion.Exercises.ToArray());
+    }
+
     [Fact]
     public async Task CatalogueAndTemplates_ReturnSeededExercisesAndThreeTemplates()
     {
@@ -141,9 +206,14 @@ public sealed class ProgramEndpointsTests(PostgresApiFactory factory)
         var created = await validCreate.Content.ReadFromJsonAsync<ProgramDetailResponse>();
         Assert.NotNull(created);
 
+        var otherPrograms = await otherClient.GetFromJsonAsync<List<ProgramSummaryResponse>>("/api/programs");
+        Assert.NotNull(otherPrograms);
+        Assert.Empty(otherPrograms);
+
         // Non-owner requests must return 403 Forbidden
         var otherGet = await otherClient.GetAsync($"/api/programs/{created.Id}");
         var otherGetVersion = await otherClient.GetAsync($"/api/program-versions/{created.CurrentVersionId}");
+        var otherGetVersionByNumber = await otherClient.GetAsync($"/api/programs/{created.Id}/versions/1");
         var otherUpdate = await otherClient.PutAsJsonAsync(
             $"/api/programs/{created.Id}",
             new UpsertProgramRequest(
@@ -155,8 +225,15 @@ public sealed class ProgramEndpointsTests(PostgresApiFactory factory)
 
         Assert.Equal(HttpStatusCode.Forbidden, otherGet.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, otherGetVersion.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, otherGetVersionByNumber.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, otherUpdate.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, otherDelete.StatusCode);
+
+        var unchanged = await ownerClient.GetFromJsonAsync<ProgramDetailResponse>($"/api/programs/{created.Id}");
+        Assert.NotNull(unchanged);
+        Assert.Equal(created.Name, unchanged.Name);
+        Assert.Equal(created.CurrentVersionId, unchanged.CurrentVersionId);
+        Assert.Single(unchanged.Versions);
     }
 
     [Fact]
