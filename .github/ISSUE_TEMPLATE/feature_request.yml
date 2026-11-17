@@ -1,0 +1,49 @@
+name: Feature / Task
+description: Propose a new feature, enhancement, or WBS implementation task
+title: "[Feat]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of GymTracker does this affect?
+      options:
+        - Backend (backend/)
+        - Mobile (mobile/)
+        - Both Backend & Mobile
+        - CI / Docker (.github/, compose.yaml)
+        - Documentation (docs/)
+    validations:
+      required: true
+
+  - type: input
+    id: wbs
+    attributes:
+      label: WBS Task ID (optional)
+      description: Reference the project plan WBS ID if applicable.
+      placeholder: "e.g., WBS-1.4"
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Goal / Problem
+      description: What problem does this solve or what capability does it add?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Approach
+      description: Describe the expected behavior, API/UI changes, or implementation notes.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: What needs to be true for this issue to be considered done?
+      placeholder: |
+        - [ ] Endpoint / UI implemented
+        - [ ] Tests added and passing (`dotnet test` / `flutter test`)
+        - [ ] Documentation updated if needed
