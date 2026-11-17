@@ -714,6 +714,89 @@ namespace GymTracker.Api.Data.Migrations
                     b.ToTable("user_accounts", (string)null);
                 });
 
+            modelBuilder.Entity("GymTracker.Api.Data.WorkoutRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("OwnerUid")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("owner_uid");
+
+                    b.Property<DateTimeOffset>("PerformedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("performed_at_utc");
+
+                    b.Property<Guid?>("ProgramVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("program_version_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProgramVersionId");
+
+                    b.HasIndex("OwnerUid", "PerformedAtUtc");
+
+                    b.ToTable("workout_records", (string)null);
+                });
+
+            modelBuilder.Entity("GymTracker.Api.Data.WorkoutSet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("ExerciseId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("exercise_id");
+
+                    b.Property<decimal?>("LoadKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("load_kg");
+
+                    b.Property<int>("Repetitions")
+                        .HasColumnType("integer")
+                        .HasColumnName("repetitions");
+
+                    b.Property<Guid>("WorkoutId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workout_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("WorkoutId", "DisplayOrder")
+                        .IsUnique();
+
+                    b.ToTable("workout_sets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_workout_sets_load_kg", "load_kg IS NULL OR load_kg BETWEEN 0 AND 1000");
+
+                            t.HasCheckConstraint("ck_workout_sets_repetitions", "repetitions BETWEEN 1 AND 500");
+                        });
+                });
+
             modelBuilder.Entity("GymTracker.Api.Data.ProgramTemplateExercise", b =>
                 {
                     b.HasOne("GymTracker.Api.Data.Exercise", "Exercise")
@@ -772,6 +855,35 @@ namespace GymTracker.Api.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("GymTracker.Api.Data.WorkoutRecord", b =>
+                {
+                    b.HasOne("GymTracker.Api.Data.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GymTracker.Api.Data.ProgramVersion", null)
+                        .WithMany()
+                        .HasForeignKey("ProgramVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("GymTracker.Api.Data.WorkoutSet", b =>
+                {
+                    b.HasOne("GymTracker.Api.Data.Exercise", null)
+                        .WithMany()
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GymTracker.Api.Data.WorkoutRecord", null)
+                        .WithMany("Sets")
+                        .HasForeignKey("WorkoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GymTracker.Api.Data.ProgramTemplate", b =>
                 {
                     b.Navigation("Exercises");
@@ -785,6 +897,11 @@ namespace GymTracker.Api.Data.Migrations
             modelBuilder.Entity("GymTracker.Api.Data.TrainingProgram", b =>
                 {
                     b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("GymTracker.Api.Data.WorkoutRecord", b =>
+                {
+                    b.Navigation("Sets");
                 });
 #pragma warning restore 612, 618
         }

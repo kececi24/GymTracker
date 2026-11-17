@@ -1,6 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Data.Common;
+using GymTracker.Api.Data;
 using GymTracker.Api.Endpoints;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace GymTracker.Api.Tests;
@@ -8,8 +14,8 @@ namespace GymTracker.Api.Tests;
 // Test-first WBS-5.2 contract: /api/workouts stores a workout with an ordered list
 // of individual sets. PUT replaces that list atomically (including removed sets).
 // LoadKg uses the same canonical kilogram unit as program and AI draft contracts;
-// null represents a bodyweight set. These wire DTOs deliberately live in tests
-// until the workout API is implemented; no production workout types exist yet.
+// null represents a bodyweight set. Test-local wire DTOs keep the contract checks
+// independent of the production response types.
 [Collection(PostgresApiCollection.Name)]
 public sealed class WorkoutEndpointsTests(PostgresApiFactory factory)
 {
@@ -60,6 +66,55 @@ public sealed class WorkoutEndpointsTests(PostgresApiFactory factory)
         var remaining = await client.GetFromJsonAsync<List<WorkoutResponse>>("/api/workouts");
         Assert.NotNull(remaining);
         Assert.Empty(remaining);
+    }
+
+    [Fact]
+    public async Task WorkoutUpdate_GrowsAndShrinksSetList_AndNormalizesTimeToUtc()
+    {
+        using var client = NewClient();
+        var initial = ValidWorkout();
+        var workout = await CreateWorkoutAsync(client, initial);
+        var expanded = initial with
+        {
+            PerformedAtUtc = initial.PerformedAtUtc.ToOffset(TimeSpan.FromHours(3)),
+            Sets = [.. initial.Sets, new("push-up", 15, null)]
+        };
+        using var grow = await client.PutAsJsonAsync($"/api/workouts/{workout.Id}", expanded);
+        Assert.Equal(HttpStatusCode.OK, grow.StatusCode);
+        await AssertPersistedAsync(client, workout.Id, expanded);
+        var persisted = await client.GetFromJsonAsync<WorkoutResponse>($"/api/workouts/{workout.Id}");
+        Assert.NotNull(persisted);
+        Assert.Equal(TimeSpan.Zero, persisted.PerformedAtUtc.Offset);
+
+        var reduced = initial with { Sets = [new("push-up", 20, null)] };
+        using var shrink = await client.PutAsJsonAsync($"/api/workouts/{workout.Id}", reduced);
+        Assert.Equal(HttpStatusCode.OK, shrink.StatusCode);
+        await AssertPersistedAsync(client, workout.Id, reduced);
+    }
+
+    [Fact]
+    public async Task WorkoutUpdate_DatabaseFailureRollsBackRecordAndSets()
+    {
+        using var client = NewClient();
+        var initial = ValidWorkout();
+        var workout = await CreateWorkoutAsync(client, initial);
+        var interceptor = new FailAfterWorkoutWriteInterceptor();
+        using var failingApp = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+            services.AddDbContext<GymTrackerDbContext>(options => options.AddInterceptors(interceptor))));
+        using var failingClient = failingApp.CreateClient();
+        failingClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
+        var changed = initial with
+        {
+            PerformedAtUtc = initial.PerformedAtUtc.AddDays(1),
+            Sets = [new("push-up", 25, null)]
+        };
+
+        // Throw after PostgreSQL executes a write, while SaveChanges' transaction
+        // is still open. Validation-only failures cannot verify this rollback path.
+        using var response = await failingClient.PutAsJsonAsync($"/api/workouts/{workout.Id}", changed);
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.True(interceptor.WriteExecuted);
+        await AssertPersistedAsync(client, workout.Id, initial);
     }
 
     [Fact]
@@ -234,4 +289,36 @@ public sealed class WorkoutEndpointsTests(PostgresApiFactory factory)
         DateTimeOffset PerformedAtUtc, Guid? ProgramVersionId, IReadOnlyList<WorkoutSetInput> Sets);
     public sealed record WorkoutResponse(
         Guid Id, DateTimeOffset PerformedAtUtc, Guid? ProgramVersionId, IReadOnlyList<WorkoutSetInput> Sets);
+
+    private sealed class InjectedWorkoutWriteException : Exception;
+
+    private sealed class FailAfterWorkoutWriteInterceptor : DbCommandInterceptor
+    {
+        public bool WriteExecuted { get; private set; }
+
+        public override ValueTask<int> NonQueryExecutedAsync(
+            DbCommand command, CommandExecutedEventData eventData, int result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("UPDATE workout_", StringComparison.Ordinal))
+            {
+                WriteExecuted = true;
+                throw new InjectedWorkoutWriteException();
+            }
+            return ValueTask.FromResult(result);
+        }
+
+        public override async ValueTask<DbDataReader> ReaderExecutedAsync(
+            DbCommand command, CommandExecutedEventData eventData, DbDataReader result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("UPDATE workout_", StringComparison.Ordinal))
+            {
+                WriteExecuted = true;
+                await result.DisposeAsync();
+                throw new InjectedWorkoutWriteException();
+            }
+            return result;
+        }
+    }
 }
