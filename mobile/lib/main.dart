@@ -10,15 +10,27 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await FirebaseAppCheck.instance.activate(
-    providerAndroid: kDebugMode
-        ? const AndroidDebugProvider()
-        : const AndroidPlayIntegrityProvider(),
-  );
+  if (kIsWeb) {
+    const recaptchaSiteKey = String.fromEnvironment(
+      'APP_CHECK_WEB_RECAPTCHA_SITE_KEY',
+    );
+
+    if (kDebugMode) {
+      await FirebaseAppCheck.instance.activate(providerWeb: WebDebugProvider());
+    } else if (recaptchaSiteKey.isNotEmpty) {
+      await FirebaseAppCheck.instance.activate(
+        providerWeb: ReCaptchaV3Provider(recaptchaSiteKey),
+      );
+    }
+  } else {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+    );
+  }
 
   runApp(const ProviderScope(child: GymTrackerApp()));
 }

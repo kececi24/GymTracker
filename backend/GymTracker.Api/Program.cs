@@ -9,6 +9,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddOpenApi();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("LocalFlutterWeb", policy =>
+        policy.WithOrigins("http://localhost:7357", "http://127.0.0.1:7357")
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+});
 builder.Services.AddDbContext<GymTrackerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("GymTracker")));
 
@@ -44,6 +51,7 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 
 app.MapOpenApi();
 
+app.UseCors("LocalFlutterWeb");
 app.UseAuthentication();
 app.UseAuthorization();
 

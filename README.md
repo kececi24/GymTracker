@@ -30,6 +30,22 @@ dotnet test GymTracker.slnx
 
 The CI workflow exercises the migration, rollback to an empty schema, and reapplication on a disposable PostgreSQL database. For EF CLI commands, run `dotnet tool restore`, set `ConnectionStrings__GymTracker` to a connection string for the target database, and pass `--project backend/GymTracker.Api` to `dotnet ef`.
 
+## Run the app in Chrome
+
+The Flutter client can be run in Chrome for quick UI development and debugging. From the repository root, use:
+
+```sh
+cd mobile
+flutter pub get --enforce-lockfile
+flutter run -d chrome --web-port=7357 --dart-define=API_BASE_URL=http://localhost:8080
+```
+
+In VS Code, you can instead open **Run and Debug**, select **GymTracker: Chrome**, and press **F5**. The fixed port lets the local API accept browser requests without opening CORS to arbitrary websites. Start the backend first if you want the API health check; the rest of the app can still be viewed when the backend is offline.
+
+Firebase App Check uses its web debug provider in a debug build. If App Check enforcement is enabled in Firebase, copy the debug token printed in the Chrome developer console and register it under **App Check → Apps → Manage debug tokens**.
+
+For a release web build, pass the reCAPTCHA v3 site key with `--dart-define=APP_CHECK_WEB_RECAPTCHA_SITE_KEY=your-site-key`.
+
 ## Start the Android app
 
 Install Flutter **3.44.0**, JDK 17, Android SDK Platform 36, Android Build Tools 36.0.0, and Android NDK 28.2.13676358. Start an Android emulator.
