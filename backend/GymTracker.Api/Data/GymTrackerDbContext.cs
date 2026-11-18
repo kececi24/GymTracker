@@ -12,9 +12,13 @@ public sealed class GymTrackerDbContext(DbContextOptions<GymTrackerDbContext> op
     public DbSet<TrainingProgram> TrainingPrograms => Set<TrainingProgram>();
     public DbSet<ProgramVersion> ProgramVersions => Set<ProgramVersion>();
     public DbSet<ProgramVersionExercise> ProgramVersionExercises => Set<ProgramVersionExercise>();
+    public DbSet<WorkoutRecord> WorkoutRecords => Set<WorkoutRecord>();
+    public DbSet<WorkoutSet> WorkoutSets => Set<WorkoutSet>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.ApplyConfiguration(new WorkoutRecordConfiguration());
+        modelBuilder.ApplyConfiguration(new WorkoutSetConfiguration());
         modelBuilder.Entity<UserAccount>(account =>
         {
             account.ToTable("user_accounts");
