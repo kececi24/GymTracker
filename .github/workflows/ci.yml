@@ -75,6 +75,24 @@ jobs:
           flutter-version-file: mobile/pubspec.yaml
           channel: stable
       - run: flutter pub get --enforce-lockfile
+      # Real Firebase files are gitignored. Use the base64 repository secrets
+      # when available; otherwise fall back to inert placeholders so the build
+      # still runs.
+      - name: Restore Firebase configuration
+        env:
+          FIREBASE_OPTIONS_DART_B64: ${{ secrets.FIREBASE_OPTIONS_DART_B64 }}
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -n "$FIREBASE_OPTIONS_DART_B64" ]; then
+            printf '%s' "$FIREBASE_OPTIONS_DART_B64" | base64 --decode > lib/firebase_options.dart
+          else
+            cp tool/firebase/firebase_options.ci.dart lib/firebase_options.dart
+          fi
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON_B64" | base64 --decode > android/app/google-services.json
+          else
+            cp tool/firebase/google-services.ci.json android/app/google-services.json
+          fi
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test

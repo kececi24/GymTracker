@@ -10,13 +10,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  dio: ^5.9.0
+  dio: ^5.11.1
   drift: ^2.30.0
   firebase_app_check: ^0.5.1
   firebase_auth: ^7.0.1
   firebase_core: ^5.1.0
   firebase_messaging: ^17.0.1
-  flutter_riverpod: ^3.3.2
+  flutter_riverpod: ^3.5.0
   google_sign_in: ^7.2.0
 
 dev_dependencies:

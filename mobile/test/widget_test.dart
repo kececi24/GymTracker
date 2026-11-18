@@ -1,30 +1,62 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:gymtracker/main.dart';
+import 'support/test_harness.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  Future<void> signIn(WidgetTester tester) async {
+    await tester.pumpWidget(buildTestApp());
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-email')),
+      'ahmet@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('auth-password')),
+      'secret123',
+    );
+    await tester.tap(find.byKey(const ValueKey('auth-submit')));
+    await tester.pumpAndSettle();
+  }
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('bottom navigation switches between primary pages', (
+    tester,
+  ) async {
+    await signIn(tester);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.tap(find.text('Workouts'));
+    await tester.pumpAndSettle();
+    expect(find.text('Workouts are on the way'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.tap(find.text('History'));
+    await tester.pumpAndSettle();
+    expect(find.text('History will appear here'), findsOneWidget);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+    expect(find.text('ahmet@example.com'), findsOneWidget);
+
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hi, Ahmet'), findsOneWidget);
+  });
+
+  testWidgets('profile sign out returns to the authentication screen', (
+    tester,
+  ) async {
+    await signIn(tester);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-sign-out')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign out?'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign out'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('auth-screen')), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
   });
 }
