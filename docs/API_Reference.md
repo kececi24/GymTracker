@@ -1,6 +1,6 @@
 # GymTracker API Reference
 
-This reference describes the endpoints currently registered by the backend: health and schema discovery, identity and profiles, catalogue and templates, programs and versions, workout records, and AI draft previews. Paths are relative to the API host, for example `http://localhost:8080` with Docker Compose. Planned APIs are listed separately at the end and have no available routes yet.
+This reference covers health and schema discovery, identity and profiles, catalogue and templates, programs and versions, workout records, scheduled sessions, and AI draft previews. Paths are relative to the API host, for example `http://localhost:8080` with Docker Compose.
 
 ## Health and API discovery
 
@@ -20,7 +20,7 @@ Content-Type: application/json
 
 The backend derives ownership from the token. Clients do not supply an owner UID in write requests. Owner-specific lists return only the caller's records; the catalogue and templates are shared. Program and workout resource operations return `403` when the resource exists but belongs to someone else, and `404` when it does not exist. Profile routes require the path UID to match the token UID. Missing, invalid, and expired tokens return `401`.
 
-Program, version, and workout IDs are UUIDs. Exercise and template IDs are catalogue strings such as `barbell-back-squat` and `full-body-foundation`. Version numbers are integers starting at 1. JSON property names use camel case.
+Program, version, workout, and scheduled session IDs are UUIDs. Exercise and template IDs are catalogue strings such as `barbell-back-squat` and `full-body-foundation`. Version numbers are integers starting at 1. JSON property names use camel case.
 
 ## Identity, profiles, and onboarding
 
@@ -221,6 +221,18 @@ The backend validates the full request before changing the workout. Workout and 
 
 Workout responses expose `id`, `performedAtUtc`, `programVersionId`, and `sets`. Internal set IDs, owner UID, and audit timestamps are not included.
 
+## Scheduled sessions
+
+| Method and path | Purpose | Success response |
+| --- | --- | --- |
+| `POST /api/scheduled-sessions` | Schedule a session in the caller's display timezone. | `201` with the session and its resource path in `Location`. |
+| `PUT /api/scheduled-sessions/{sessionId}` | Move an owned active session using the caller's current display timezone. | `200` with the updated session. |
+| `DELETE /api/scheduled-sessions/{sessionId}` | Mark an owned session cancelled. | `200` with the saved session and its original cancellation timestamp on repeated requests. |
+
+Create and move requests take a local date and time such as `{"localStart":"2028-03-27T18:30:00"}`. Supply hours and minutes, with optional seconds and up to six fractional digits. The API obtains the timezone from the caller's profile and stores it with the converted UTC instant. A caller creating their first session without a local account starts with the default `UTC` timezone.
+
+The response contains `id`, `localStart` as a datetime without an offset, `startAtUtc`, `displayTimezone`, and `cancelledAtUtc` (initially `null`). Cancellation preserves the scheduled time and timezone. Invalid time formats, offsets in the input, unrecognized profile timezones, and local times skipped or repeated during a clock change return `400`. Moving a cancelled session returns `409`. For move and cancel, a session owned by someone else returns `403` and a missing session returns `404`.
+
 ## AI provider and workout draft previews
 
 | Method and path | Purpose | Success response |
@@ -288,6 +300,7 @@ Authentication and JSON-binding errors can occur before the adapter and use the 
 | `401 Unauthorized` | Missing, expired, or invalid authentication token. |
 | `403 Forbidden` | Access to another user's resource or reference to their program version. |
 | `404 Not Found` | Requested resource/version is missing, or an active-program operation targets an archived program. |
+| `409 Conflict` | A move targets a cancelled scheduled session. |
 | `422 Unprocessable Entity` | AI input/output schema validation failed; see preview failures above. |
 | `429 Too Many Requests` | AI disabled or local quota/spending limit reached. |
 | `503 Service Unavailable` | AI adapter/provider failure. |
@@ -315,7 +328,7 @@ Malformed JSON and type-binding errors are handled by ASP.NET Core, so clients s
 
 The following project-plan areas do not currently have registered endpoints. Route names, request bodies, and response contracts are deferred until implementation:
 
-- Scheduling, rescheduling, cancellation, and notification/reminder preferences and delivery.
+- Calendar session listings, reminder preferences, and notification delivery.
 - Operation-ID replay and offline synchronization endpoints.
 - Progress calculations, dashboards, personal records, and personalized insights.
 - Dedicated goal management and AI goal/program suggestions. Profile goal text and workout draft preview are already available as described above.
@@ -330,12 +343,14 @@ This list describes planned scope, not working API capabilities. See the [projec
 - [Identity and profile endpoint implementation](../backend/GymTracker.Api/Endpoints/IdentityAndProfileEndpoints.cs)
 - [Program endpoint implementation](../backend/GymTracker.Api/Endpoints/ProgramEndpoints.cs)
 - [Workout endpoint implementation](../backend/GymTracker.Api/Endpoints/WorkoutEndpoints.cs)
+- [Scheduling endpoint implementation](../backend/GymTracker.Api/Endpoints/SchedulingEndpoints.cs)
 - [Workout schema and constraints](../backend/GymTracker.Api/Data/WorkoutRecord.cs)
 - [AI endpoint implementation](../backend/GymTracker.Api/Endpoints/AiAdapterEndpoints.cs)
 - [AI adapter configuration and contracts](../backend/GymTracker.Api/Ai/AiProviderAdapter.cs)
 - [Identity and profile integration tests](../backend/GymTracker.Api.Tests/IdentityAndProfileTests.cs)
 - [Program integration tests](../backend/GymTracker.Api.Tests/ProgramEndpointsTests.cs)
 - [Workout integration tests](../backend/GymTracker.Api.Tests/WorkoutEndpointsTests.cs)
+- [Scheduling integration tests](../backend/GymTracker.Api.Tests/SchedulingEndpointsTests.cs)
 - [Health and OpenAPI tests](../backend/GymTracker.Api.Tests/FoundationTests.cs)
 - [AI adapter tests](../backend/GymTracker.Api.Tests/AiProviderAdapterTests.cs)
 
