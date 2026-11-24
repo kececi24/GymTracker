@@ -62,6 +62,7 @@ app.MapGet("/health", () => TypedResults.Ok(new HealthResponse("ok")))
 app.MapIdentityAndProfileEndpoints();
 app.MapProgramEndpoints();
 app.MapWorkoutEndpoints();
+app.MapSchedulingEndpoints();
 app.MapAiAdapterEndpoints();
 
 await app.RunAsync();

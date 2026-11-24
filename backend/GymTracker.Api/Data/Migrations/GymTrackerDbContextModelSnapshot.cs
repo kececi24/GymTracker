@@ -572,6 +572,40 @@ namespace GymTracker.Api.Data.Migrations
                     b.ToTable("program_version_exercises", (string)null);
                 });
 
+            modelBuilder.Entity("GymTracker.Api.Data.ScheduledSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CancelledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at_utc");
+
+                    b.Property<string>("DisplayTimezone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("display_timezone");
+
+                    b.Property<string>("OwnerUid")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("owner_uid");
+
+                    b.Property<DateTimeOffset>("StartAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUid", "StartAtUtc");
+
+                    b.ToTable("scheduled_sessions", (string)null);
+                });
+
             modelBuilder.Entity("GymTracker.Api.Data.TrainingProgram", b =>
                 {
                     b.Property<Guid>("Id")
@@ -844,6 +878,15 @@ namespace GymTracker.Api.Data.Migrations
                     b.Navigation("Exercise");
 
                     b.Navigation("ProgramVersion");
+                });
+
+            modelBuilder.Entity("GymTracker.Api.Data.ScheduledSession", b =>
+                {
+                    b.HasOne("GymTracker.Api.Data.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GymTracker.Api.Data.TrainingProgram", b =>
