@@ -467,37 +467,44 @@ public static class ProgramEndpoints
             .Where(e => requestedIds.Contains(e.Id))
             .ToDictionaryAsync(e => e.Id, StringComparer.Ordinal, cancellationToken);
 
+        return (ValidateProgramExercises(exercises, catalogExercises), catalogExercises);
+    }
+
+    internal static string? ValidateProgramExercises(
+        IReadOnlyList<ProgramExerciseInput> exercises,
+        IReadOnlyDictionary<string, Exercise> catalogExercises)
+    {
         for (var i = 0; i < exercises.Count; i++)
         {
             var item = exercises[i];
             var exerciseId = item.ExerciseId?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(exerciseId) || !catalogExercises.TryGetValue(exerciseId, out var catalogExercise))
             {
-                return ($"Exercise '{exerciseId}' at position {i + 1} is not in the reviewed catalogue.", []);
+                return $"Exercise '{exerciseId}' at position {i + 1} is not in the reviewed catalogue.";
             }
 
             if (item.TargetSets <= 0 || item.TargetSets > 50)
             {
-                return ($"Target sets for '{catalogExercise.Name}' must be between 1 and 50.", []);
+                return $"Target sets for '{catalogExercise.Name}' must be between 1 and 50.";
             }
 
             if (item.TargetReps <= 0 || item.TargetReps > 500)
             {
-                return ($"Target repetitions for '{catalogExercise.Name}' must be between 1 and 500.", []);
+                return $"Target repetitions for '{catalogExercise.Name}' must be between 1 and 500.";
             }
 
             if (item.TargetLoadKg is < 0 or > 1000)
             {
-                return ($"Target load (kg) for '{catalogExercise.Name}' must be between 0 and 1000.", []);
+                return $"Target load (kg) for '{catalogExercise.Name}' must be between 0 and 1000.";
             }
 
             if (item.RestSeconds is < 0 or > 3600)
             {
-                return ($"Rest seconds for '{catalogExercise.Name}' must be between 0 and 3600.", []);
+                return $"Rest seconds for '{catalogExercise.Name}' must be between 0 and 3600.";
             }
         }
 
-        return (null, catalogExercises);
+        return null;
     }
 
     private static ProgramVersion BuildProgramVersion(

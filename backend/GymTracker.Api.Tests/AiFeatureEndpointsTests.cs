@@ -76,6 +76,7 @@ public sealed class AiFeatureEndpointsTests(PostgresApiFactory factory)
     [InlineData("3 sets of 8 at 40 kg", """{"summary":"Session","sets":[{"exerciseId":"unknown-exercise","sets":3,"repetitions":8,"loadKg":40}]}""", "SchemaValidationFailed")]
     [InlineData("3 sets of 8 squats at 40 kg", """{"summary":"Session","sets":[{"exerciseId":"barbell-back-squat","sets":3,"repetitions":8,"loadKg":-40}]}""", "SchemaValidationFailed")]
     [InlineData("3 sets of 8 squats at 40", """{"summary":"Session","sets":[{"exerciseId":"barbell-back-squat","sets":3,"repetitions":8,"loadKg":40}]}""", "SchemaValidationFailed")]
+    [InlineData("3 sets of 8 squats at 40", """{"summary":"Session","sets":[{"exerciseId":"barbell-back-squat","sets":3,"repetitions":8,"loadKg":null}]}""", "SchemaValidationFailed")]
     [InlineData("3 sets of 8 squats at 40 kg", "{invalid json}", "MalformedOutput")]
     public async Task WorkoutPreview_RejectsInvalidDraftAndPreservesText(
         string description, string providerJson, string failureReason)
@@ -84,6 +85,24 @@ public sealed class AiFeatureEndpointsTests(PostgresApiFactory factory)
         using var client = NewClient(app);
 
         await AssertWorkoutErrorAsync(client, description, HttpStatusCode.UnprocessableEntity, failureReason);
+    }
+
+    [Fact]
+    public async Task WorkoutPreview_AcceptsExplicitPoundsNormalizedToKilograms()
+    {
+        const string providerJson = """
+            {"summary":"Session","sets":[{"exerciseId":"barbell-back-squat","sets":3,"repetitions":8,"loadKg":45.36}]}
+            """;
+        using var app = StubProvider((_, _) => Task.FromResult(providerJson));
+        using var client = NewClient(app);
+
+        using var response = await client.PostAsJsonAsync(WorkoutPreview,
+            new { descriptionText = "3 sets of 8 squats at 100 lb" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var preview = await response.Content.ReadFromJsonAsync<WorkoutPreviewResponse>();
+        Assert.NotNull(preview);
+        Assert.Equal(45.36m, Assert.Single(preview.Proposal.Sets).LoadKg);
     }
 
     [Fact]

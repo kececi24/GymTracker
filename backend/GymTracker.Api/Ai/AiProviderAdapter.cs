@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -286,6 +287,15 @@ public static class AiStructuredOutputPipeline
                 options.ModelId,
                 stopwatch.ElapsedMilliseconds);
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
+        {
+            return AiAdapterResult<T>.Failure(
+                AiFailureReason.QuotaExhausted,
+                "The AI provider's request limit was reached. Manual entry remains available.",
+                options.Provider,
+                options.ModelId,
+                stopwatch.ElapsedMilliseconds);
+        }
         catch (Exception)
         {
             return AiAdapterResult<T>.Failure(
@@ -396,7 +406,13 @@ public sealed class StubAiProviderAdapter(
                     return JsonSerializer.Serialize(sample);
                 }
 
-                throw new InvalidOperationException($"No default stub response registered for type {typeof(T).Name}.");
+                return request.OperationName switch
+                {
+                    "GoalSuggestion" => """{"primaryGoal":"Complete 15 consecutive push-ups"}""",
+                    "ProgramProposal" => """{"name":"Push-up practice","exercises":[{"exerciseId":"push-up","targetSets":3,"targetReps":8,"targetLoadKg":null}]}""",
+                    "ProgressInsight" => """{"explanation":"Compare session counts and training volume across the two periods to assess consistency."}""",
+                    _ => throw new InvalidOperationException($"No default stub response registered for type {typeof(T).Name}.")
+                };
             },
             domainValidator,
             cancellationToken);
