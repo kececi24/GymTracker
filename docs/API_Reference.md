@@ -1,6 +1,6 @@
 # GymTracker API Reference
 
-This reference describes the endpoints currently registered by the backend: health and schema discovery, identity and profiles, catalogue and templates, programs and versions, workout records, and AI draft previews. Paths are relative to the API host, for example `http://localhost:8080` with Docker Compose. Planned APIs are listed separately at the end and have no available routes yet.
+This reference describes the backend endpoints for health and schema discovery, identity and profiles, catalogue and templates, programs and versions, workout records, and AI previews and planning. Paths are relative to the API host, for example `http://localhost:8080` with Docker Compose. The final section lists planned APIs.
 
 ## Health and API discovery
 
@@ -221,16 +221,19 @@ The backend validates the full request before changing the workout. Workout and 
 
 Workout responses expose `id`, `performedAtUtc`, `programVersionId`, and `sets`. Internal set IDs, owner UID, and audit timestamps are not included.
 
-## AI provider and workout draft previews
+## AI provider, workout previews, and planning
 
 | Method and path | Purpose | Success response |
 | --- | --- | --- |
 | `GET /api/ai/provider` | Read configured provider metadata and current cost-control counters. | `200`: provider metadata. |
 | `POST /api/ai/workout-draft-preview` | Convert a natural-language description into a validated, unpersisted workout proposal. | `200`: draft preview. |
+| `POST /api/ai/goal-suggestion` | Suggest a goal using the signed-in user's saved goal and equipment preferences. | `200`: goal proposal. |
+| `POST /api/ai/program-proposal` | Suggest a program using the signed-in user's goal, experience, and available equipment. | `200`: program proposal. |
+| `POST /api/ai/progress-insight` | Explain the signed-in user's recent training metrics. | `200`: progress explanation. |
 
 The metadata response contains `provider`, `modelId`, `supportsStructuredOutput`, `timeoutSeconds`, `maxInputCharacters`, `maxOutputTokens`, `maxRequestsPerPeriod`, `budgetCapUsd`, `estimatedCostPerRequestUsd`, `zeroDataRetention`, `enabled`, `requestsUsed`, and `estimatedSpendUsd`. These describe configuration and local accounting, rather than provider billing or a successful live-provider health check.
 
-The backend uses a stub adapter by default (`Ai:UseStub` is `true`). It also selects the stub when the API key is missing. A successful preview alone therefore does not demonstrate a live model call. Live operation requires `Ai:UseStub` set to `false` and an API key configured on the server.
+The backend returns fixed sample proposals through the stub adapter by default (`Ai:UseStub` is `true`) or when the API key is missing. Live generation requires `Ai:UseStub` set to `false` and an API key configured on the server.
 
 ### Preview request and response
 
@@ -253,21 +256,33 @@ The success response contains `originalText`, `proposal`, `requiresUserConfirmat
 }
 ```
 
-The adapter validates that the summary is non-blank, at least one set entry exists, exercise IDs belong to the catalogue, grouped set counts are 1–50, repetitions are 1–500, and optional loads are 0–1000 kg. The default maximum input length is 2000 characters and the default timeout is 30 seconds; read the metadata endpoint for the configured limits.
+The adapter validates the summary, catalogue exercise IDs, grouped set counts (1–50), repetitions (1–500), and external loads (0–1000 kg). Write external loads with units such as `40 kg` or `100 lb`. The API checks the proposed loads against the quantities in the description and accepts pounds converted to kilograms to two decimal places. The metadata endpoint reports the configured input limit and timeout.
 
 The preview never saves a workout. Let the user review and edit it first. To save an approved draft, expand each grouped entry into individual sets for `POST /api/workouts`, supply the performed timestamp and optional program-version reference, and satisfy the workout validation rules above. For example, an AI entry with `sets: 3` becomes three workout set entries.
 
-### Preview failures
+### Planning requests and responses
+
+The three planning endpoints require authentication and accept an empty body. Save a primary goal in the profile before requesting a goal suggestion. Program proposals also require an experience level. Progress insights compare sessions, resistance volume, and bodyweight repetitions across the latest 30 days and the preceding 30 days. They require at least one workout in those 60 days.
+
+Each response has `proposal`, `requiresUserConfirmation`, `persisted` (always `false`), `provider`, `modelId`, and `latencyMs`. The proposal shape depends on the endpoint.
+
+| Endpoint | Proposal fields | Review and save |
+| --- | --- | --- |
+| Goal suggestion | `primaryGoal` | Review and edit the suggestion before updating the profile with `PUT /api/users/{uid}/profile`. |
+| Program proposal | `name`, `description`, `exercises` (the same fields as a program write) | Review and edit the proposal before submitting `POST /api/programs`. |
+| Progress insight | `explanation` | Display for review. `requiresUserConfirmation` is `false`. |
+
+### AI failures
 
 | Status | `failureReason` | Meaning |
 | --- | --- | --- |
 | `400` | `InputTooLarge` | Description exceeds the configured character limit. |
-| `422` | `MalformedOutput` or `SchemaValidationFailed` | Provider output cannot be parsed/validated, or the input text is blank. |
-| `429` | `QuotaExhausted` or `Disabled` | Local request/spending limit reached or AI disabled. |
+| `422` | `MalformedOutput` or `SchemaValidationFailed` | Provider output failed validation, workout input was incomplete, or the planning request lacked required data. |
+| `429` | `QuotaExhausted` or `Disabled` | A local or provider limit was reached, or AI is disabled. |
 | `504` | `Timeout` | Adapter timeout. |
 | `503` | Other adapter failure reasons, such as `ProviderUnavailable` or `Cancelled` | The adapter could not complete the request. Cancellation may also end the client connection before a response can be received. |
 
-Adapter failures return this shape, preserving the user's input for manual correction:
+Workout preview failures return this shape, preserving the user's input for manual correction. Planning failures return the same fields except `originalText`.
 
 ```json
 {
@@ -317,8 +332,8 @@ The following project-plan areas do not currently have registered endpoints. Rou
 
 - Scheduling, rescheduling, cancellation, and notification/reminder preferences and delivery.
 - Operation-ID replay and offline synchronization endpoints.
-- Progress calculations, dashboards, personal records, and personalized insights.
-- Dedicated goal management and AI goal/program suggestions. Profile goal text and workout draft preview are already available as described above.
+- Progress dashboard and personal-record APIs.
+- Dedicated goal management.
 - Friend connections and private workout-summary sharing/revocation.
 - Optional badges/quotes, group chat, joint workouts, and public program sharing.
 
